@@ -1,9 +1,10 @@
 import axios from 'axios'
 import { sessionStore } from '@/state/sessionStore'
+import { API_BASE_URL, isDevelopment } from './env'
 
 // Base API URL for the .NET backend
-// Configure via VITE_API_BASE_URL environment variable or defaults to http://localhost:5128/api
-export const BASE_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5128/api'
+// Validated and loaded from environment configuration
+export const BASE_API_URL = API_BASE_URL
 
 export const api = axios.create({
   baseURL: BASE_API_URL,
@@ -18,7 +19,7 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = sessionStore.getToken()
-    if (import.meta.env.DEV) {
+    if (isDevelopment) {
       console.log('🔄 [API Interceptor] Making request', { 
         url: config.url, 
         method: config.method,
@@ -35,10 +36,10 @@ api.interceptors.request.use(
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      if (import.meta.env.DEV) {
+      if (isDevelopment) {
         console.log('🔑 [API Interceptor] Added Authorization header:', `Bearer ${token.substring(0, 20)}...`)
       }
-    } else if (import.meta.env.DEV) {
+    } else if (isDevelopment) {
       console.info('ℹ️ [API Interceptor] Skipping Authorization header; no auth token for request:', config.url)
     }
     return config
@@ -52,7 +53,7 @@ api.interceptors.request.use(
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
-    if (import.meta.env.DEV) {
+    if (isDevelopment) {
       console.log('✅ [API Interceptor] Response received', { 
         url: response.config.url, 
         status: response.status
@@ -67,7 +68,7 @@ api.interceptors.response.use(
     // For expected errors (404, etc.), log less verbosely
     const isExpectedError = status === 404 || status === 403;
     
-    const shouldLogVerbose = import.meta.env.DEV;
+    const shouldLogVerbose = isDevelopment;
     const shouldLogWarningOnly = !shouldLogVerbose && isExpectedError;
 
     if (shouldLogWarningOnly) {
@@ -100,7 +101,7 @@ api.interceptors.response.use(
       const isSettingsEndpoint = url.includes('/PageAccess/settings') || url.includes('/pageaccess/settings')
       const isLoginPage = window.location.pathname.includes('/login')
       
-      if (import.meta.env.DEV) {
+      if (isDevelopment) {
         console.warn('⚠️ [API Interceptor] Unauthorized access detected', {
           url,
           isSettingsEndpoint,

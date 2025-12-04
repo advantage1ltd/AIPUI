@@ -1,88 +1,3 @@
-<<<<<<< HEAD
-# Employee Diary Application
-
-A React application for managing employee activities and records.
-
-## Features
-
-- View employee activities and records
-- Filter activities by employee, category, or search terms
-- Add new activity records
-- Edit and delete existing records
-- Sync with external systems (simulated)
-
-## Tech Stack
-
-- React with TypeScript
-- Vite for frontend build and development
-- Tailwind CSS for styling
-- React Hook Form with Zod for form validation
-- JSON Server for mock API
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18 or later
-- npm or yarn
-
-### Installation
-
-1. Clone this repository
-2. Install dependencies:
-
-```bash
-npm install
-# or
-yarn install
-```
-
-### Running the Development Server
-
-This project uses JSON Server to simulate a backend API with the data from `db.json`.
-
-1. Start the mock API server:
-
-```bash
-npm run mock-api
-# or
-yarn mock-api
-```
-
-This will start a server on http://localhost:3001
-
-2. In a separate terminal, start the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-This will start the Vite development server.
-
-## API Endpoints
-
-The mock API provides the following endpoints:
-
-- `GET /employees` - List all employees
-- `GET /activities` - List all activities
-- `GET /activities?employeeId={id}` - List activities for a specific employee
-- `POST /activities` - Create a new activity
-- `PUT /activities/{id}` - Update an activity
-- `DELETE /activities/{id}` - Delete an activity
-- `GET /sync-status` - Get sync status for all sources
-
-## Project Structure
-
-- `src/components/` - Reusable React components
-- `src/pages/` - Main pages of the application
-- `src/services/` - Service layers for API interactions
-- `src/types/` - TypeScript type definitions
-- `src/config/` - Application configuration
-- `db.json` - Mock database used by JSON Server
-=======
-<<<<<<< HEAD
 # Advantage One Interactive Portal (AIP)
 
 Advantage One Interactive Portal (AIP) is an advanced, full-featured crime and incident management software designed to streamline and automate various aspects of incident reporting, management, and follow-up. Built as an API-centric solution, AIP leverages a modern technology stack including React, Vite, .NET (with Entity Framework), and MSSQL for robust, scalable, and high-performance functionality across various modules.
@@ -106,160 +21,255 @@ Advantage One Interactive Portal (AIP) is an advanced, full-featured crime and i
 ### Additional Features
 - Incident Reporting
 - Satisfaction Surveys
-- Advanced Reporting
+- Advanced Reporting & Analytics
 - Stock Management
 - Recruitment Management
-- Holiday Management
+- Employee Activity Tracking
+- Site Visit Management
+- Action Calendar & Task Management
 
 ## Technologies Used
 
 ### Frontend
-- React with TypeScript
-- Vite for fast, modern development
-- TailwindCSS for styling
-- React Hook Form with Zod for validation
+- **React** with **TypeScript** - Modern, type-safe UI development
+- **Vite** - Fast, modern development and build tooling
+- **TailwindCSS** - Utility-first CSS framework
+- **Radix UI** - Accessible component primitives
+- **Shadcn/ui** - Beautiful, accessible components
+- **React Hook Form** with **Zod** - Form validation
+- **Redux Toolkit** - State management
+- **TanStack Query** - Data fetching and caching
+- **Framer Motion** - Animation library
+- **Recharts** - Data visualization
+- **MSW** - API mocking for development
 
 ### Backend
-- .NET – Robust and scalable API
-- Entity Framework for ORM
-- MSSQL Database
-- CORS enabled for secure cross-origin requests
+- **.NET** - Robust and scalable API
+- **Entity Framework** - ORM for seamless database interaction
+- **MSSQL** - Reliable, high-performance relational database
+- **CORS** - Configured for secure cross-origin requests
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18 or later
-- .NET SDK
-- MSSQL Server
+- .NET SDK (for backend)
+- MSSQL Server (for backend)
 - npm or yarn
+
+## 📚 Documentation
+
+**For Production Deployment:**
+- 🚀 **[Production Ready Summary](PRODUCTION_READY_SUMMARY.md)** - Start here!
+- 📋 [Production Checklist](docs/PRODUCTION_CHECKLIST.md)
+- 🔧 [Build Instructions](docs/BUILD_INSTRUCTIONS.md)
+- 🔀 [Hybrid Setup Guide](docs/HYBRID_SETUP_GUIDE.md) - Real backend + mock analytics
+
+**All documentation:** See [`docs/`](docs/) folder
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
-git clone https://github.com/dibanga2800/aip.git
+git clone https://github.com/advantageonesecurity/COOP_AIP.git
 ```
 
-2. Install Frontend Dependencies:
+2. **Install Frontend Dependencies:**
 ```bash
-cd frontend
+cd AIP_UI
 npm install
 ```
 
-3. Install Backend Dependencies:
+3. **Install Backend Dependencies:**
 ```bash
-cd backend
+cd AIP_Backend
 dotnet restore
 ```
 
 ### Configuration
 
-1. Database Setup:
-- Configure your MSSQL connection string in `appsettings.json`
-- Update any necessary database migrations using Entity Framework
+#### Frontend Configuration
 
-2. CORS Configuration:
-- CORS is enabled to allow cross-origin requests
-- Update CORS policy in backend if needed
+1. **Environment Variables:**
+   - Copy `.env.example` to `.env`
+   - Update environment variables as needed:
+
+```bash
+cp .env.example .env
+```
+
+Key environment variables:
+- `VITE_API_BASE_URL` - Backend API URL (default: http://localhost:5128/api)
+- `VITE_APP_ENV` - Environment (development, staging, production)
+- `VITE_ENABLE_MSW` - Enable/disable API mocking
+
+2. **MSW (Mock Service Worker):**
+   - MSW is automatically enabled in development mode
+   - Allows frontend development without backend
+   - Seamlessly switches to real API when backend is ready
+
+#### Backend Configuration
+
+1. **Database Setup:**
+   - Configure MSSQL connection string in `appsettings.json`
+   - Run Entity Framework migrations:
+   ```bash
+   dotnet ef database update
+   ```
+
+2. **CORS Configuration:**
+   - CORS is pre-configured for cross-origin requests
+   - Update CORS policy in backend if needed for your domain
 
 ### Running the Application
 
-1. Start the Backend:
+#### Development Mode
+
+1. **Start the Frontend:**
 ```bash
-cd backend
+cd AIP_UI
+npm run dev
+```
+
+The frontend will run on `http://localhost:5173` (or next available port)
+
+2. **Start the Backend (when ready):**
+```bash
+cd AIP_Backend
 dotnet run
 ```
 
-2. Start the Frontend:
+The backend API will run on `http://localhost:5128` (or configured port)
+
+#### Production Build
+
+1. **Build the Frontend:**
 ```bash
-cd frontend
-=======
-Advantage One Interactive Portal (AIP) is an advanced, full-featured crime and incident management software designed to streamline and automate various aspects of incident reporting, management, and follow-up. Built as an API-centric solution, AIP leverages a modern technology stack including React, Vite, and a .NET backend to deliver fast, scalable, and robust functionality across various modules.
+cd AIP_UI
+npm run build
+```
 
-Key Features:
-Crime & Incident Management: Capture, track, and resolve incidents efficiently with features designed to enhance user workflows.
+This will:
+- Type-check with TypeScript
+- Build optimized production bundle
+- Output to `dist` directory
+- Strip console.logs and debug statements
+- Generate source maps (if configured)
+- Create bundle analysis report
 
-CRM (Customer Relationship Management): Manage client interactions, track communication, and ensure a smooth flow of information.
+2. **Preview Production Build:**
+```bash
+npm run preview
+```
 
-CBT (Computer-Based Training): Implement training programs for personnel, ensuring staff are properly equipped to handle incidents.
-
-Incident Reporting: Users can easily submit reports with incident details, creating an efficient tracking system.
-
-Satisfaction Surveys: Collect feedback from stakeholders to measure satisfaction and identify areas for improvement.
-
-Advanced Reporting: Generate reports with detailed insights, aiding in decision-making and transparency.
-
-Stock Management: Manage and track inventory, ensuring that necessary resources are available when needed.
-
-Recruitment Management: Handle recruitment processes, from applications to selection, helping manage staffing needs.
-
-Holiday Management: Plan and track employee holidays for improved workforce scheduling.
-
-Technologies Used:
-Frontend: React, Vite – Fast, modern frontend framework for building interactive UIs.
-
-Backend: .NET – Robust and scalable backend API for handling complex business logic.
-
-Database: (Specify the type of database you are using, e.g., SQL Server, PostgreSQL, etc.)
-
-Authentication: (e.g., JWT, OAuth, or any authentication method you are using)
-
-Why AIP?
-AIP is designed to be a comprehensive solution that addresses the needs of both public safety agencies and organizations dealing with crime and incident management. Whether it's tracking a reported crime, managing employee schedules, or gathering stakeholder feedback, AIP empowers organizations to streamline operations and improve overall efficiency. The flexible, modular architecture ensures that the platform can evolve and scale as new features or requirements emerge.
-
-Getting Started:
-To get started with AIP, follow these instructions:
-
-Clone the Repository:
-
-bash
-Copy
-git clone https://github.com/dibanga2800/aip.git
-Install Dependencies:
-
-For the frontend, run:
-
-bash
-Copy
-cd frontend
-npm install
-For the backend, run:
-
-bash
-Copy
-cd backend
-dotnet restore
-Run the Project:
-
-Frontend:
-
-bash
-Copy
->>>>>>> 91431598b13147046f51a005e491afd05a206b7d
-npm run dev
-Backend:
-
-<<<<<<< HEAD
 ## Project Structure
 
-- `frontend/` - React application with Vite
-  - `src/components/` - Reusable React components
-  - `src/pages/` - Main application pages
-  - `src/services/` - API service layers
-  - `src/types/` - TypeScript type definitions
+### Frontend Structure
+```
+AIP_UI/
+├── src/
+│   ├── components/      # Reusable React components
+│   ├── pages/          # Main application pages
+│   ├── services/       # API service layers
+│   ├── types/          # TypeScript type definitions
+│   ├── config/         # Configuration files
+│   ├── hooks/          # Custom React hooks
+│   ├── utils/          # Utility functions
+│   ├── store/          # Redux store and slices
+│   ├── contexts/       # React contexts
+│   └── mocks/          # MSW mock handlers
+├── public/             # Static assets
+└── dist/              # Production build output
+```
 
-- `backend/` - .NET API
-  - `Controllers/` - API endpoints
-  - `Models/` - Entity Framework models
-  - `Services/` - Business logic
-  - `Data/` - Database context and migrations
+### Backend Structure
+```
+AIP_Backend/
+├── Controllers/        # API endpoints
+├── Models/            # Entity Framework models
+├── Services/          # Business logic
+├── Data/              # Database context and migrations
+└── DTOs/              # Data transfer objects
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run mock-api` - Start JSON Server (legacy)
+
+## Deployment
+
+### Vercel Deployment
+The project is configured for Vercel deployment with `vercel.json`.
+
+### Netlify Deployment
+Alternative deployment configured with `netlify.toml`.
+
+### Manual Deployment
+1. Build the project: `npm run build`
+2. Deploy the `dist` folder to your hosting provider
+3. Ensure proper routing configuration for SPA
+
+## Environment-Specific Configurations
+
+### Development
+- MSW enabled for API mocking
+- Full console logging
+- React DevTools
+- Hot module replacement
+
+### Staging
+- Real API endpoints
+- Limited logging
+- Performance monitoring
+
+### Production
+- Minified and optimized bundles
+- Console logs stripped (except errors/warnings)
+- Performance monitoring
+- Error tracking (if configured)
+
+## Security Features
+
+- JWT-based authentication
+- Protected routes
+- CORS configuration
+- Input validation with Zod
+- SQL injection prevention (Entity Framework)
+- XSS protection
+
+## Performance Optimizations
+
+- Code splitting
+- Lazy loading of routes
+- Image optimization
+- Bundle size optimization
+- Efficient re-rendering with React.memo
+- Virtualized lists for large datasets
+- Debounced search inputs
+
+## Browser Support
+
+- Chrome (latest 2 versions)
+- Firefox (latest 2 versions)
+- Safari (latest 2 versions)
+- Edge (latest 2 versions)
 
 ## Contributing
 
-We welcome contributions to improve AIP. Please feel free to:
+We welcome contributions to improve AIP. Please:
 1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
@@ -267,123 +277,13 @@ For questions or support:
 - Open an issue on GitHub
 - Email: dibanga2800@gmail.com
 
-## License
+## Acknowledgments
 
-This project is licensed under the MIT License - see the LICENSE.md file for details.
-=======
-bash
-Copy
-dotnet run
-Configuration:
-Update configuration files as necessary (e.g., database connections, API keys).
+- Built with modern React and TypeScript
+- UI components from Radix UI and Shadcn
+- Backend powered by .NET and Entity Framework
+- Database management with MSSQL
 
-Contributing:
-We welcome contributions to improve Advantage One Interactive Portal (AIP). If you have ideas, fixes, or features to propose, feel free to fork the repository, create a branch, and submit a pull request. Please refer to the CONTRIBUTING.md for contribution guidelines.
+---
 
-License:
-This project is licensed under the MIT License - see the LICENSE.md file for details.
-
-Contact:
-For questions or support, feel free to open an issue on GitHub or reach out to dibanga2800@gmail.com.
-
-This description is designed to be informative, easy to understand, and welcoming to potential contributors. Let me know if you'd like to adjust or add any more details!
-
-
-You said:
-the database is MSSQL and i will be using entity framework and CORS in the project
-
-ChatGPT said:
-Great! Here's an updated version of the GitHub project description incorporating your use of MSSQL, Entity Framework, and CORS:
-
-Advantage One Interactive Portal (AIP)
-Advantage One Interactive Portal (AIP) is an advanced, full-featured crime and incident management software designed to streamline and automate various aspects of incident reporting, management, and follow-up. Built as an API-centric solution, AIP leverages a modern technology stack including React, Vite, .NET (with Entity Framework), and MSSQL for robust, scalable, and high-performance functionality across various modules.
-
-Key Features:
-Crime & Incident Management: Capture, track, and resolve incidents efficiently with features designed to enhance user workflows.
-
-CRM (Customer Relationship Management): Manage client interactions, track communication, and ensure a smooth flow of information.
-
-CBT (Computer-Based Training): Implement training programs for personnel, ensuring staff are properly equipped to handle incidents.
-
-Incident Reporting: Users can easily submit reports with incident details, creating an efficient tracking system.
-
-Satisfaction Surveys: Collect feedback from stakeholders to measure satisfaction and identify areas for improvement.
-
-Advanced Reporting: Generate reports with detailed insights, aiding in decision-making and transparency.
-
-Stock Management: Manage and track inventory, ensuring that necessary resources are available when needed.
-
-Recruitment Management: Handle recruitment processes, from applications to selection, helping manage staffing needs.
-
-Holiday Management: Plan and track employee holidays for improved workforce scheduling.
-
-Technologies Used:
-Frontend: React, Vite – Fast, modern frontend framework for building interactive UIs.
-
-Backend: .NET – Robust and scalable backend API for handling complex business logic.
-
-Database: MSSQL – A reliable, high-performance relational database for managing and querying data.
-
-ORM: Entity Framework – A powerful Object-Relational Mapper (ORM) for seamless database interaction with C#.
-
-Authentication: (e.g., JWT, OAuth, or any authentication method you are using)
-
-CORS: Cross-Origin Resource Sharing (CORS) configured to allow secure interactions between frontend and backend during development and production.
-
-Why AIP?
-AIP is designed to be a comprehensive solution that addresses the needs of both public safety agencies and organizations dealing with crime and incident management. Whether it's tracking a reported crime, managing employee schedules, or gathering stakeholder feedback, AIP empowers organizations to streamline operations and improve overall efficiency. The flexible, modular architecture ensures that the platform can evolve and scale as new features or requirements emerge.
-
-Getting Started:
-To get started with AIP, follow these instructions:
-
-Clone the Repository:
-
-bash
-Copy
-git clone https://github.com/dibanga2800/aip.git
-Install Dependencies:
-
-For the frontend, run:
-
-bash
-Copy
-cd frontend
-npm install
-For the backend, run:
-
-bash
-Copy
-cd backend
-dotnet restore
-Configure the Database:
-Ensure that your MSSQL database is set up correctly. You can configure your connection string in appsettings.json (for the backend), and update any database migration commands using Entity Framework.
-
-Run the Project:
-
-Frontend:
-
-bash
-Copy
-npm run dev
-Backend:
-
-bash
-Copy
-dotnet run
-CORS Configuration:
-CORS is enabled to allow cross-origin requests between your frontend and backend. Make sure the frontend runs on the correct URL or update the CORS policy in the backend to match your needs.
-
-Configuration:
-Update any configuration files as necessary, such as API keys, database connections, and authentication settings.
-
-Contributing:
-We welcome contributions to improve Advantage One Interactive Portal (AIP). If you have ideas, fixes, or features to propose, feel free to fork the repository, create a branch, and submit a pull request. Please refer to the CONTRIBUTING.md for contribution guidelines.
-
-License:
-This project is licensed under the MIT License - see the LICENSE.md file for details.
-
-Contact:
-For questions or support, feel free to open an issue on GitHub or reach out to dibanga2800@gmail.com.
-
->>>>>>> 91431598b13147046f51a005e491afd05a206b7d
->>>>>>> master
+**Note:** This is an active development project. Some features may be in progress or subject to change.

@@ -1,4 +1,4 @@
-import React, { lazy, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { createBrowserRouter, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Layout } from '@/components/layout/Layout';
@@ -6,9 +6,11 @@ import LoginPage from '@/pages/LoginPage';
 import Index from '@/pages/Index';
 import CustomerDetailPage from '@/pages/customer/CustomerDetailPage';
 import ActionCalendar from '@/pages/ActionCalendar';
+import NotFoundPage from '@/pages/NotFoundPage';
 import { UserRole } from '@/types/user';
 import { PageAccessProvider } from '@/contexts/PageAccessContext';
 import { CustomerSelectionUrlSync } from '@/components/customer/CustomerSelectionUrlSync';
+import { LoadingFallback } from '@/components/LoadingFallback';
 
 // Component to normalize paths and fix double slashes
 const PathNormalizer = () => {
@@ -100,20 +102,29 @@ const NavigationTracker = () => {
 	return null;
 };
 
-// Import all the necessary pages
-import UserSetup from '@/pages/administration/UserSetup';
-import EmployeeRegistration from '@/pages/administration/EmployeeRegistration';
-import CustomerSetup from '@/pages/administration/CustomerSetup';
-import IncidentReportPage from '@/pages/operations/IncidentReportPage';
-import AlertRulesPage from '@/pages/operations/AlertRulesPage';
-import DataAnalyticsHub from '@/pages/analytics/DataAnalyticsHub';
-import Settings from '@/pages/Settings';
-import Profile from '@/pages/Profile';
+// Lazy load all route pages for better code splitting and performance
+// Only critical pages (Login, Layout, Index) are loaded immediately
 
-// Import operations pages (moved from customer)
-const IncidentGraphPage = lazy(() => import('./pages/customer/IncidentGraph').then(module => ({ default: module.default })));
+// Administration pages
+const UserSetup = lazy(() => import('@/pages/administration/UserSetup'));
+const EmployeeRegistration = lazy(() => import('@/pages/administration/EmployeeRegistration'));
+const CustomerSetup = lazy(() => import('@/pages/administration/CustomerSetup'));
+
+// Operations pages
+const IncidentReportPage = lazy(() => import('@/pages/operations/IncidentReportPage'));
+const AlertRulesPage = lazy(() => import('@/pages/operations/AlertRulesPage'));
+const IncidentGraphPage = lazy(() => import('./pages/customer/IncidentGraph'));
 const CustomerCrimeIntelligencePage = lazy(() => import('./pages/customer/CustomerCrimeIntelligence'));
-import BarcodeTestPage from './pages/test/BarcodeTestPage';
+
+// Analytics pages
+const DataAnalyticsHub = lazy(() => import('@/pages/analytics/DataAnalyticsHub'));
+
+// User pages
+const Settings = lazy(() => import('@/pages/Settings'));
+const Profile = lazy(() => import('@/pages/Profile'));
+
+// Other pages
+const BarcodeTestPage = lazy(() => import('./pages/test/BarcodeTestPage'));
 
 const router = createBrowserRouter([
   {
@@ -151,7 +162,9 @@ const router = createBrowserRouter([
             path: 'dashboard',
             element: (
               <ProtectedRoute>
-                <Index />
+                <Suspense fallback={<LoadingFallback />}>
+                  <Index />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -159,7 +172,9 @@ const router = createBrowserRouter([
             path: 'action-calendar',
             element: (
               <ProtectedRoute>
-                <ActionCalendar />
+                <Suspense fallback={<LoadingFallback />}>
+                  <ActionCalendar />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -175,7 +190,9 @@ const router = createBrowserRouter([
             path: 'settings',
             element: (
               <ProtectedRoute allowedRoles={['administrator'] as UserRole[]}>
-                <Settings />
+                <Suspense fallback={<LoadingFallback />}>
+                  <Settings />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -192,7 +209,9 @@ const router = createBrowserRouter([
             path: 'administration/employee-registration',
             element: (
               <ProtectedRoute allowedRoles={['administrator', 'advantageonehoofficer'] as UserRole[]}>
-                <EmployeeRegistration />
+                <Suspense fallback={<LoadingFallback />}>
+                  <EmployeeRegistration />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -209,7 +228,9 @@ const router = createBrowserRouter([
             path: 'operations/incident-report',
             element: (
               <ProtectedRoute>
-                <IncidentReportPage />
+                <Suspense fallback={<LoadingFallback />}>
+                  <IncidentReportPage />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -217,7 +238,9 @@ const router = createBrowserRouter([
             path: 'operations/incident-graph',
             element: (
               <ProtectedRoute allowedRoles={['administrator', 'advantageoneofficer', 'customerhomanager', 'customersitemanager'] as UserRole[]}>
-                <IncidentGraphPage />
+                <Suspense fallback={<LoadingFallback />}>
+                  <IncidentGraphPage />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -228,7 +251,9 @@ const router = createBrowserRouter([
                 allowedRoles={['administrator', 'advantageonehoofficer', 'advantageoneofficer', 'customerhomanager', 'customersitemanager'] as UserRole[]}
                 accessPath="/operations/crime-intelligence"
               >
-                <CustomerCrimeIntelligencePage />
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerCrimeIntelligencePage />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -239,19 +264,23 @@ const router = createBrowserRouter([
                 allowedRoles={['administrator', 'advantageonehoofficer', 'customersitemanager', 'customerhomanager'] as UserRole[]}
                 accessPath="/operations/alert-rules"
               >
-                <AlertRulesPage />
+                <Suspense fallback={<LoadingFallback />}>
+                  <AlertRulesPage />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
           {
             path: 'analytics/data-analytics-hub',
             element: (
-              <ProtectedRoute 
+              <ProtectedRoute
                 allowedRoles={['administrator', 'advantageonehoofficer', 'customerhomanager'] as UserRole[]}
                 accessPath="/analytics/data-analytics-hub"
                 enforcePageAccess={false}
               >
-                <DataAnalyticsHub />
+                <Suspense fallback={<LoadingFallback />}>
+                  <DataAnalyticsHub />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
@@ -259,13 +288,23 @@ const router = createBrowserRouter([
             path: 'customer/:customerId/*',
             element: (
               <ProtectedRoute enforcePageAccess={false}>
-                <CustomerDetailPage />
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerDetailPage />
+                </Suspense>
               </ProtectedRoute>
             ),
+          },
+          {
+            path: '*',
+            element: <NotFoundPage />,
           },
         ]
       }
     ]
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
   }
 ]);
 

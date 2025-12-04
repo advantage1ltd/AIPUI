@@ -37,16 +37,21 @@ export interface AnalyticsQueryParams {
 
 class AnalyticsService {
 	private readonly baseUrl = '/analytics'
+	// Use mock data for Analytics Hub until backend is ready (default: true)
+	private readonly useMockData = import.meta.env.VITE_ANALYTICS_USE_MOCK !== 'false'
 
 	/**
 	 * Get complete analytics hub data
 	 */
 	async getAnalyticsHub(params?: AnalyticsQueryParams): Promise<AnalyticsHubData> {
-		// TODO: Replace with real API call when backend is ready
-		// const response = await api.get(this.baseUrl, { params })
-		// return response.data
+		// If backend is ready for analytics, use real API
+		if (!this.useMockData && import.meta.env.VITE_ANALYTICS_USE_MOCK === 'false') {
+			// const response = await api.get(`${this.baseUrl}/hub`, { params })
+			// return response.data
+			throw new Error('Analytics API not yet implemented. Set VITE_ANALYTICS_USE_MOCK=true to use mock data.')
+		}
 
-		// For now, return mock data with simulated delay
+		// Use mock data with simulated delay (default behavior)
 		await new Promise((resolve) => setTimeout(resolve, 500))
 		return generateMockAnalyticsData(params)
 	}
