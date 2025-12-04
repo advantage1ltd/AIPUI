@@ -70,6 +70,10 @@ export default defineConfig(({ mode }) => ({
       'react': resolve(__dirname, 'node_modules/react'),
       'react-dom': resolve(__dirname, 'node_modules/react-dom'),
       'react/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime'),
+      // Use production stub for mocks in production builds
+      ...(mode === 'production' ? {
+        '@/mocks/browser': resolve(__dirname, 'src/mocks/browser.prod.ts'),
+      } : {}),
     }
   },
   optimizeDeps: {

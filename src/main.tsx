@@ -7,17 +7,6 @@ import { store } from './store/store'
 import { initWebVitals } from './utils/vitals'
 import { logger } from './utils/logger'
 
-// Initialize MSW - only in development mode
-// In production, Analytics Hub uses local mock data directly (no MSW needed)
-async function enableMocking() {
-	if (import.meta.env.DEV) {
-		const { worker } = await import('./mocks/browser')
-		return worker.start({
-			onUnhandledRequest: 'bypass', // Don't warn on unhandled requests
-		})
-	}
-}
-
 // Initialize performance monitoring
 if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_ANALYTICS === 'true') {
 	initWebVitals((metric) => {
@@ -31,13 +20,12 @@ if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_ANALYTICS === 'true') {
 	})
 }
 
-// Start MSW and then render the app
-enableMocking().then(() => {
-	ReactDOM.createRoot(document.getElementById('root')!).render(
-		<React.StrictMode>
-			<Provider store={store}>
-				<App />
-			</Provider>
-		</React.StrictMode>
-	)
-})
+// Render the app
+// Note: Using static mock data from src/data/ - no MSW service worker needed
+ReactDOM.createRoot(document.getElementById('root')!).render(
+	<React.StrictMode>
+		<Provider store={store}>
+			<App />
+		</Provider>
+	</React.StrictMode>
+)

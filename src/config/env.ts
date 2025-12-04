@@ -12,7 +12,6 @@ const envSchema = z.object({
 	VITE_APP_ENV: z.enum(['development', 'staging', 'production']).default('development'),
 	
 	// Feature Flags
-	VITE_ENABLE_MSW: z.string().transform(val => val === 'true').default('true'),
 	VITE_ENABLE_ANALYTICS: z.string().transform(val => val === 'true').default('false'),
 	VITE_ENABLE_ERROR_TRACKING: z.string().transform(val => val === 'true').default('false'),
 	
@@ -47,7 +46,6 @@ function validateEnv(): Env {
 		const env = {
 			VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
 			VITE_APP_ENV: import.meta.env.VITE_APP_ENV,
-			VITE_ENABLE_MSW: import.meta.env.VITE_ENABLE_MSW,
 			VITE_ENABLE_ANALYTICS: import.meta.env.VITE_ENABLE_ANALYTICS,
 			VITE_ENABLE_ERROR_TRACKING: import.meta.env.VITE_ENABLE_ERROR_TRACKING,
 			VITE_APP_NAME: import.meta.env.VITE_APP_NAME,
@@ -97,7 +95,6 @@ if (isDevelopment) {
 		appName: APP_NAME,
 		version: APP_VERSION,
 		features: {
-			msw: env.VITE_ENABLE_MSW,
 			analytics: env.VITE_ENABLE_ANALYTICS,
 			errorTracking: env.VITE_ENABLE_ERROR_TRACKING,
 		}
