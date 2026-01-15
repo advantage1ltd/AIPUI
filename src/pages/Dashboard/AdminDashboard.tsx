@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -520,8 +521,40 @@ const AdminDashboard = () => {
   const [regionOptions, setRegionOptions] = React.useState<Array<{ id: string; name: string }>>([]);
   const [selectedRegion, setSelectedRegion] = React.useState<string>('all');
   const [activePeriod, setActivePeriod] = React.useState<'Daily' | 'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
+  const [fromDate, setFromDate] = React.useState('');
+  const [toDate, setToDate] = React.useState('');
+  const [fromDateInput, setFromDateInput] = React.useState('');
+  const [toDateInput, setToDateInput] = React.useState('');
+  const [dateRangeError, setDateRangeError] = React.useState<string | null>(null);
   const [loadedIncidents, setLoadedIncidents] = React.useState<typeof MOCK_INCIDENTS>([]);
   const [incidentsLoading, setIncidentsLoading] = React.useState(true);
+  const isDateRangeActive = Boolean(fromDate || toDate);
+
+  const handleApplyDateRange = () => {
+    if (!fromDateInput && !toDateInput) {
+      setFromDate('');
+      setToDate('');
+      setDateRangeError(null);
+      return;
+    }
+
+    if (fromDateInput && toDateInput && new Date(fromDateInput) > new Date(toDateInput)) {
+      setDateRangeError('Start date must be before end date.');
+      return;
+    }
+
+    setFromDate(fromDateInput);
+    setToDate(toDateInput);
+    setDateRangeError(null);
+  };
+
+  const handleClearDateRange = () => {
+    setFromDate('');
+    setToDate('');
+    setFromDateInput('');
+    setToDateInput('');
+    setDateRangeError(null);
+  };
 
   // Load incidents from API
   React.useEffect(() => {
@@ -774,13 +807,55 @@ const AdminDashboard = () => {
     return regionOptions;
   }, [regionOptions]);
 
-  // Filter incidents by selected region
+  // Filter incidents by selected region and date range
   const filteredIncidents = React.useMemo(() => {
-    if (selectedRegion === 'all') {
-      return loadedIncidents
+    const regionFiltered = selectedRegion === 'all'
+      ? loadedIncidents
+      : loadedIncidents.filter(incident => {
+          const incidentRegionId = incident.regionId ? String(incident.regionId) : null
+          const incidentRegionName = (incident.regionName || '').toLowerCase().trim()
+          const selectedRegionName = regions.find(r => r.id === selectedRegion)?.name?.toLowerCase().trim()
+
+          if (incidentRegionId && incidentRegionId === String(selectedRegion)) {
+            return true
+          }
+
+          if (selectedRegionName && incidentRegionName && incidentRegionName === selectedRegionName) {
+            return true
+          }
+
+          return false
+        })
+
+    if (!isDateRangeActive) {
+      return regionFiltered
     }
-    return loadedIncidents.filter(inc => inc.regionId === selectedRegion)
-  }, [selectedRegion, loadedIncidents])
+
+    const startBoundary = fromDate ? new Date(`${fromDate}T00:00:00`) : null
+    const endBoundary = toDate ? new Date(`${toDate}T23:59:59`) : null
+
+    return regionFiltered.filter(incident => {
+      const incidentDateValue = incident.dateOfIncident || incident.date
+      if (!incidentDateValue) {
+        return false
+      }
+
+      const incidentDate = new Date(incidentDateValue)
+      if (Number.isNaN(incidentDate.getTime())) {
+        return false
+      }
+
+      if (startBoundary && incidentDate < startBoundary) {
+        return false
+      }
+
+      if (endBoundary && incidentDate > endBoundary) {
+        return false
+      }
+
+      return true
+    })
+  }, [selectedRegion, loadedIncidents, regions, isDateRangeActive, fromDate, toDate])
 
   // Use filtered incidents for all calculations
   const customerMetrics = React.useMemo(() => {
@@ -837,6 +912,10 @@ const AdminDashboard = () => {
         }))
     }
 
+    if (selectedRegion !== 'all' || isDateRangeActive) {
+      return []
+    }
+
     // Fallback: synthesize from analytics hub data if no real incidents loaded yet
     if (analyticsData) {
       const endDate = new Date(analyticsData.metadata.dateRange.end)
@@ -881,7 +960,7 @@ const AdminDashboard = () => {
     }
 
     return []
-  }, [filteredIncidents, analyticsData])
+  }, [filteredIncidents, analyticsData, selectedRegion, isDateRangeActive])
 
   // Get priority cases – use real backend data
   const priorityCases = React.useMemo(() => {
@@ -904,7 +983,7 @@ const AdminDashboard = () => {
     }
 
     // Fallback: synthesize from analytics data if no real incidents loaded yet
-    if (analyticsData) {
+    if (!isDateRangeActive && analyticsData) {
       const stores = analyticsData.hotProducts.storeHeatmap
         .slice()
         .sort((a, b) => b.totalIncidents - a.totalIncidents)
@@ -955,7 +1034,7 @@ const AdminDashboard = () => {
     }
 
     return []
-  }, [filteredIncidents, analyticsData])
+  }, [filteredIncidents, analyticsData, isDateRangeActive])
 
   // Generate alerts data
   const alerts = React.useMemo(() => {
@@ -1021,7 +1100,7 @@ const AdminDashboard = () => {
     }
 
     // Fallback: use analytics hub data if no real incidents loaded yet
-    if (analyticsData && analyticsData.hotProducts.storeHeatmap.length > 0) {
+    if (!isDateRangeActive && analyticsData && analyticsData.hotProducts.storeHeatmap.length > 0) {
       return analyticsData.hotProducts.storeHeatmap
         .map(store => ({
           store: store.storeName,
@@ -1032,7 +1111,7 @@ const AdminDashboard = () => {
     }
 
     return []
-  }, [filteredIncidents, analyticsData])
+  }, [filteredIncidents, analyticsData, isDateRangeActive])
 
   // Log region selection and filtered data for debugging
   React.useEffect(() => {
@@ -1381,78 +1460,126 @@ const AdminDashboard = () => {
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex flex-col gap-2 w-full md:w-auto">
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Input
+                  type="date"
+                  value={fromDateInput}
+                  onChange={(event) => setFromDateInput(event.target.value)}
+                  className="w-full text-sm"
+                  aria-label="Filter incidents from date"
+                />
+                <Input
+                  type="date"
+                  value={toDateInput}
+                  onChange={(event) => setToDateInput(event.target.value)}
+                  className="w-full text-sm"
+                  aria-label="Filter incidents to date"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleApplyDateRange}
+                  className="h-9 text-xs sm:text-sm"
+                >
+                  Apply Dates
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearDateRange}
+                  className="h-9 text-xs sm:text-sm"
+                  disabled={!isDateRangeActive && !fromDateInput && !toDateInput}
+                >
+                  Clear Dates
+                </Button>
+              </div>
+              {dateRangeError && (
+                <p className="text-xs text-red-600">{dateRangeError}</p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Quick Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {/* Total Incidents */}
-          <Card className="min-w-[140px] bg-blue-600 text-white border-0 shadow-md overflow-hidden relative">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
-              <CardTitle className="text-xs font-medium md:text-sm text-white">
-                Total Incidents
-              </CardTitle>
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                <AlertCircle className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
-              <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">{quickStats.totalIncidents}</div>
-              <div className="text-xs text-white/60 mt-1">All time</div>
-            </CardContent>
-          </Card>
+          <Link to="/operations/incident-report" className="block" aria-label="View all incidents">
+            <Card className="min-w-[140px] bg-blue-600 text-white border-0 shadow-md overflow-hidden relative cursor-pointer transition-shadow hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
+                <CardTitle className="text-xs font-medium md:text-sm text-white">
+                  Total Incidents
+                </CardTitle>
+                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <AlertCircle className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
+                <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">{quickStats.totalIncidents}</div>
+                <div className="text-xs text-white/60 mt-1">All time</div>
+              </CardContent>
+            </Card>
+          </Link>
 
           {/* Today's Incidents */}
-          <Card className="min-w-[140px] bg-emerald-600 text-white border-0 shadow-md overflow-hidden relative">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
-              <CardTitle className="text-xs font-medium md:text-sm text-white">
-                Today
-              </CardTitle>
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
-              <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">{quickStats.todayIncidents}</div>
-              <div className="text-xs text-white/60 mt-1">Incidents today</div>
-            </CardContent>
-          </Card>
+          <Link to="/operations/incident-report?preset=today" className="block" aria-label="View today's incidents">
+            <Card className="min-w-[140px] bg-emerald-600 text-white border-0 shadow-md overflow-hidden relative cursor-pointer transition-shadow hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
+                <CardTitle className="text-xs font-medium md:text-sm text-white">
+                  Today
+                </CardTitle>
+                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
+                <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">{quickStats.todayIncidents}</div>
+                <div className="text-xs text-white/60 mt-1">Incidents today</div>
+              </CardContent>
+            </Card>
+          </Link>
 
           {/* Total Value Recovered */}
-          <Card className="min-w-[140px] bg-amber-600 text-white border-0 shadow-md overflow-hidden relative">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
-              <CardTitle className="text-xs font-medium md:text-sm text-white">
-                Value Recovered
-              </CardTitle>
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Currency className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
-              <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">
-                {formatCurrency(quickStats.totalValue)}
-              </div>
-              <div className="text-xs text-white/60 mt-1">Total recovered</div>
-            </CardContent>
-          </Card>
+          <Link to="/operations/incident-report" className="block" aria-label="View incidents by value recovered">
+            <Card className="min-w-[140px] bg-amber-600 text-white border-0 shadow-md overflow-hidden relative cursor-pointer transition-shadow hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
+                <CardTitle className="text-xs font-medium md:text-sm text-white">
+                  Value Recovered
+                </CardTitle>
+                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <Currency className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
+                <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">
+                  {formatCurrency(quickStats.totalValue)}
+                </div>
+                <div className="text-xs text-white/60 mt-1">Total recovered</div>
+              </CardContent>
+            </Card>
+          </Link>
 
           {/* Theft Incidents */}
-          <Card className="min-w-[140px] bg-red-600 text-white border-0 shadow-md overflow-hidden relative">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
-              <CardTitle className="text-xs font-medium md:text-sm text-white">
-                Theft Incidents
-              </CardTitle>
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Shield className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
-              <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">{quickStats.theftIncidents}</div>
-              <div className="text-xs text-white/60 mt-1">
-                {quickStats.theftPercentage}% of all incidents
-              </div>
-            </CardContent>
-          </Card>
+          <Link to="/operations/incident-report?incidentType=Theft" className="block" aria-label="View theft incidents">
+            <Card className="min-w-[140px] bg-red-600 text-white border-0 shadow-md overflow-hidden relative cursor-pointer transition-shadow hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:p-4 pb-2 md:pb-3">
+                <CardTitle className="text-xs font-medium md:text-sm text-white">
+                  Theft Incidents
+                </CardTitle>
+                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <Shield className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 md:p-4 pt-1 md:pt-2 z-10 relative">
+                <div className="text-xl font-bold md:text-2xl lg:text-3xl text-white">{quickStats.theftIncidents}</div>
+                <div className="text-xs text-white/60 mt-1">
+                  {quickStats.theftPercentage}% of all incidents
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Main Content Grid */}

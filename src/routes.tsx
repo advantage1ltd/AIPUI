@@ -37,6 +37,17 @@ const PathNormalizer = () => {
 	return null;
 };
 
+// Ensure every navigation starts at top of page
+const ScrollToTop = () => {
+	const location = useLocation();
+
+	useEffect(() => {
+		window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+	}, [location.pathname, location.search]);
+
+	return null;
+};
+
 // Navigation tracker component for end-to-end logging
 const NavigationTracker = () => {
 	const location = useLocation();
@@ -132,6 +143,7 @@ const router = createBrowserRouter([
     element: (
       <PageAccessProvider>
         <PathNormalizer />
+        <ScrollToTop />
         <NavigationTracker />
         <CustomerSelectionUrlSync />
         <Outlet />
