@@ -18,6 +18,8 @@ const incidentTypes = [
 	'Criminal Damage',
 	'Credit Card Fraud',
 	'Suspicious Behaviour',
+	'Colleague Abuse',
+	'Colleague Assault',
 	'Underage Purchase',
 	'Anti-Social Behaviour',
 	'Others',
