@@ -65,7 +65,7 @@ import { NotificationBell } from "./header/NotificationBell";
 import { Logo } from "./header/Logo";
 import { SearchInput } from "./header/SearchInput";
 import { UserAvatar } from "./common/UserAvatar";
-import { logout, getUser } from "@/services/auth"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Define navigation items structure
 interface NavItem {
@@ -83,6 +83,7 @@ interface HeaderProps {
 // UserProfileDropdown component
 const UserProfileDropdown = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   
   const handleLogout = () => {
     logout();
@@ -180,8 +181,7 @@ export function Header({ onMobileMenuClick }: HeaderProps) {
   
   const { theme } = useTheme();
 
-  // Get authenticated user info
-  const authenticatedUser = getUser();
+  const { user: authenticatedUser } = useAuth();
   const isAuthenticated = !!authenticatedUser;
 
   // Define navigation sections to match SidebarNavigation

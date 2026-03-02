@@ -96,26 +96,28 @@ api.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
-      // Don't redirect for settings endpoint - it's allowed to be anonymous
-      // Don't redirect if already on login page
       const isSettingsEndpoint = url.includes('/PageAccess/settings') || url.includes('/pageaccess/settings')
       const isLoginPage = window.location.pathname.includes('/login')
-      
-      if (isDevelopment) {
-        console.warn('⚠️ [API Interceptor] Unauthorized access detected', {
-          url,
-          isSettingsEndpoint,
-          isLoginPage
-        })
-      }
-      
-      // Only redirect to login if:
-      // 1. Not the settings endpoint (which allows anonymous access)
-      // 2. Not already on the login page
-      // 3. Has an auth token (meaning user was authenticated but token expired)
+      const isLoginEndpoint = url.includes('/Auth/login')
+      const isAuthValidation = url.includes('/Auth/me') || url.includes('/Auth/refresh')
       const hasToken = sessionStore.getToken()
-      if (!isSettingsEndpoint && !isLoginPage && hasToken) {
-        console.warn('⚠️ [API Interceptor] Redirecting to login due to expired/invalid token')
+
+      console.warn('⚠️ [API 401]', {
+        url,
+        method: error.config?.method?.toUpperCase(),
+        isAuthValidation,
+        isLoginEndpoint,
+        isSettingsEndpoint,
+        isLoginPage,
+        hasToken: !!hasToken,
+      })
+
+      // Only force logout + redirect when the token itself is proven invalid
+      // (i.e. /Auth/me or /Auth/refresh returned 401). For all other endpoints,
+      // surface the 401 to callers so a single failing data endpoint does not
+      // kick the user back to the login screen.
+      if (isAuthValidation && !isLoginPage && hasToken) {
+        console.warn('⚠️ [API 401] Token invalid/expired — clearing session and redirecting to /login')
         sessionStore.clearAll()
         window.location.href = '/login'
       }

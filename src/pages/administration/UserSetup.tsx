@@ -94,23 +94,7 @@ const UserSetup = () => {
     return map
   }, [availableCustomers])
 
-  // Check authentication on component mount
-  useEffect(() => {
-    const token = localStorage.getItem('authToken')
-    
-    console.log('🔍 [UserSetup] Authentication check:', { 
-      hasToken: !!token,
-      currentPath: window.location.pathname 
-    })
-    
-    if (!token) {
-      console.warn('⚠️ [UserSetup] No authentication found, redirecting to login')
-      window.location.href = '/login'
-      return
-    }
-    
-    console.log('✅ [UserSetup] Authentication verified')
-  }, [])
+  // Auth is enforced by ProtectedRoute — no need to duplicate the check here.
 
   // Get users and loading state from Redux store
   const { users, loading, error } = useAppSelector((state: RootState) => state.users)

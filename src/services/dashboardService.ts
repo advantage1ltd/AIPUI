@@ -678,7 +678,7 @@ class CustomerDashboardService {
   private baseUrl = BASE_API_URL;
 
   private getHeaders() {
-    const token = localStorage.getItem('authToken');
+    const token = sessionStore.getToken();
     const user = getActiveUser();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

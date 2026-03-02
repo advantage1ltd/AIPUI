@@ -8,6 +8,7 @@ import { StoreAlertRule, TriggerCondition, AlertChannel } from '@/types/alertRul
 import { X, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { BASE_API_URL } from '@/config/api'
+import { sessionStore } from '@/state/sessionStore'
 
 // Incident types from the system
 const incidentTypes = [
@@ -68,7 +69,7 @@ export const StoreAlertRuleForm = ({ initialData, onSubmit, onCancel }: StoreAle
 				// Fetch regions with customerId filter from backend API
 				const response = await fetch(`${BASE_API_URL}/region?pageSize=100&customerId=1`, {
 					headers: {
-						'Authorization': `Bearer ${localStorage.getItem('token')}`,
+						'Authorization': `Bearer ${sessionStore.getToken()}`,
 						'Content-Type': 'application/json',
 					},
 				})

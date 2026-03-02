@@ -1,14 +1,14 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePageAccess } from '@/contexts/PageAccessContext'
-import { getUser } from '@/services/auth'
+import { useAuth } from '@/contexts/AuthContext'
 
 const RoleBasedRedirect = () => {
   const navigate = useNavigate()
   const { currentRole } = usePageAccess()
+  const { user } = useAuth()
   
   useEffect(() => {
-    const user = getUser()
     
     // Only redirect if we have a valid role and user
     if (currentRole && user) {

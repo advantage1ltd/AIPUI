@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig, UserConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import { fileURLToPath } from 'url'
@@ -141,6 +142,12 @@ export default defineConfig(({ mode }) => ({
       'tailwind-merge',
       '@zxing/library'
     ]
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
   },
   build: {
     outDir: 'dist',

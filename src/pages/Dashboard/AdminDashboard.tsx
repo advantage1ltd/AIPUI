@@ -55,6 +55,7 @@ import { customerDashboardService } from '@/services/dashboardService'
 import { incidentsApi } from '@/services/api/incidents'
 import type { AnalyticsHubData } from '@/types/analytics'
 import { BASE_API_URL } from '@/config/api'
+import { sessionStore } from '@/state/sessionStore'
 
 // Lazy load the dashboard components
 const OfficerDashboard = React.lazy(() => import('@/pages/Dashboard/OfficerDashboard'))
@@ -567,12 +568,9 @@ const AdminDashboard = () => {
       try {
         setIncidentsLoading(true);
         
-        // Check if we have auth token
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        const token = sessionStore.getToken();
         if (!token) {
           console.warn('⚠️ No auth token found - incidents may not load');
-        } else {
-          console.log('✅ Auth token found:', token.substring(0, 20) + '...');
         }
         
         console.log('🔄 Loading incidents using incidentsApi service');

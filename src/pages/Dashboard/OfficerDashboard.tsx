@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { getUser } from '@/services/auth'
+import { useAuth } from '@/contexts/AuthContext'
 import { dashboardService } from '@/services/dashboardService'
 import { OfficerDashboardData, Activity, Task, RecentIncident } from '@/types/dashboard'
 import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
@@ -255,7 +255,7 @@ const IncidentTable: React.FC<{ incidents: RecentIncident[] }> = ({ incidents })
 
 export default function OfficerDashboard() {
   // Get the logged-in user information
-  const loggedInUser = getUser()
+  const { user: loggedInUser } = useAuth()
 
   // Fetch dashboard data
   const { 
