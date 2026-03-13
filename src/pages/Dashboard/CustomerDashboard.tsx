@@ -109,7 +109,7 @@ const CustomerDashboard = ({ userRole }: CustomerDashboardProps) => {
         // Check if user is a customer role - try multiple sources
         const userRoleRaw = user?.role || (user as any)?.Role || '';
         const userRole = userRoleRaw.toLowerCase();
-        const isCustomerRole = userRole === 'customersitemanager' || userRole === 'customerhomanager';
+        const isCustomerRole = userRole === 'store' || userRole === 'manager';
         
         // Log user object for debugging
         console.log('🔍 [CustomerDashboard] User object:', {
@@ -127,7 +127,7 @@ const CustomerDashboard = ({ userRole }: CustomerDashboardProps) => {
             userRoleRaw,
             userObject: user
           });
-          setError('Access denied. This dashboard is only available for customer users.');
+          setError('Access denied. This dashboard is only available for company users.');
           setLoading(false);
           return;
         }
@@ -148,7 +148,7 @@ const CustomerDashboard = ({ userRole }: CustomerDashboardProps) => {
             } : null
           });
           
-          setError('Customer ID not found. Please log out and log in again to refresh your session.');
+          setError('Company ID not found. Please log out and log in again to refresh your session.');
           setLoading(false);
           return;
         }

@@ -94,10 +94,5 @@
     "jsdom": "^25.0.1",
     "vite": "^4.4.5",
     "vitest": "^2.1.8"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
   }
 }

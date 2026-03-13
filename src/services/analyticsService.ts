@@ -1,10 +1,12 @@
 /**
  * Analytics Service
- * 
- * Provides analytics data for the Data Analytics Hub.
- * Currently uses mock data, ready to transition to real API calls.
+ *
+ * Fetches comprehensive analytics data from the real backend API.
+ * The API response shape is designed to match the frontend types directly,
+ * so no transformation layer is needed — axios deserialises into the types as-is.
  */
 
+import { api, ANALYTICS_ENDPOINTS } from '@/config/api'
 import type {
 	AnalyticsHubData,
 	CrimeTrendData,
@@ -13,7 +15,6 @@ import type {
 	DeploymentRecommendation,
 	CrimeLinkingData,
 } from '@/types/analytics'
-import { generateMockAnalyticsData } from '@/data/mockAnalyticsData'
 
 export interface StoreOption {
 	id: number | string
@@ -31,33 +32,38 @@ export interface AnalyticsQueryParams {
 	endDate?: string
 	storeIds?: number[]
 	regionIds?: number[]
+	/** Client-side only — not sent to the backend */
 	stores?: StoreOption[]
+	/** Client-side only — not sent to the backend */
 	regions?: RegionOption[]
 }
 
 class AnalyticsService {
-	private readonly baseUrl = '/analytics'
-	// Use mock data for Analytics Hub until backend is ready (default: true)
-	private readonly useMockData = import.meta.env.VITE_ANALYTICS_USE_MOCK !== 'false'
-
 	/**
-	 * Get complete analytics hub data
+	 * Get complete analytics hub data from the real backend.
 	 */
 	async getAnalyticsHub(params?: AnalyticsQueryParams): Promise<AnalyticsHubData> {
-		// If backend is ready for analytics, use real API
-		if (!this.useMockData && import.meta.env.VITE_ANALYTICS_USE_MOCK === 'false') {
-			// const response = await api.get(`${this.baseUrl}/hub`, { params })
-			// return response.data
-			throw new Error('Analytics API not yet implemented. Set VITE_ANALYTICS_USE_MOCK=true to use mock data.')
-		}
+		const query: Record<string, string | number | undefined> = {}
 
-		// Use mock data with simulated delay (default behavior)
-		await new Promise((resolve) => setTimeout(resolve, 500))
-		return generateMockAnalyticsData(params)
+		if (params?.customerId !== undefined) query.customerId = params.customerId
+		if (params?.startDate) query.from = params.startDate
+		if (params?.endDate) query.to = params.endDate
+
+		// The backend accepts a single siteId / regionId filter for now.
+		// When multiple IDs are supplied we pass the first one; full multi-select
+		// can be wired later once the repository supports it.
+		if (params?.storeIds?.length) query.siteId = params.storeIds[0]
+		if (params?.regionIds?.length) query.regionId = params.regionIds[0]
+
+		const { data } = await api.get<AnalyticsHubData>(ANALYTICS_ENDPOINTS.HUB, {
+			params: query,
+		})
+
+		return data
 	}
 
 	/**
-	 * Get crime trend analytics
+	 * Get crime trend analytics (extracted slice from hub data).
 	 */
 	async getCrimeTrends(params?: AnalyticsQueryParams): Promise<CrimeTrendData> {
 		const data = await this.getAnalyticsHub(params)
@@ -65,7 +71,7 @@ class AnalyticsService {
 	}
 
 	/**
-	 * Get hot products analytics
+	 * Get hot products analytics (extracted slice from hub data).
 	 */
 	async getHotProducts(params?: AnalyticsQueryParams): Promise<HotProductsData> {
 		const data = await this.getAnalyticsHub(params)
@@ -73,7 +79,7 @@ class AnalyticsService {
 	}
 
 	/**
-	 * Get repeat offender analytics
+	 * Get repeat offender analytics (extracted slice from hub data).
 	 */
 	async getRepeatOffenders(params?: AnalyticsQueryParams): Promise<RepeatOffenderData> {
 		const data = await this.getAnalyticsHub(params)
@@ -81,7 +87,7 @@ class AnalyticsService {
 	}
 
 	/**
-	 * Get deployment recommendations
+	 * Get deployment recommendations (extracted slice from hub data).
 	 */
 	async getDeploymentRecommendations(
 		params?: AnalyticsQueryParams
@@ -91,7 +97,7 @@ class AnalyticsService {
 	}
 
 	/**
-	 * Get crime linking data
+	 * Get crime linking data (extracted slice from hub data).
 	 */
 	async getCrimeLinking(params?: AnalyticsQueryParams): Promise<CrimeLinkingData> {
 		const data = await this.getAnalyticsHub(params)
@@ -100,4 +106,3 @@ class AnalyticsService {
 }
 
 export const analyticsService = new AnalyticsService()
-

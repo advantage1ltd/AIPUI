@@ -14,11 +14,9 @@ const RoleBasedRedirect = () => {
     if (currentRole && user) {
       let redirectPath = '/dashboard' // default
       
-      if (user.role === 'administrator' || user.role === 'advantageonehoofficer') {
+      if (user.role === 'administrator' || user.role === 'manager') {
         redirectPath = '/dashboard'
-      } else if (user.role === 'advantageoneofficer') {
-        redirectPath = '/dashboard'
-      } else if (user.role?.startsWith('customer')) {
+      } else if (['security-officer', 'store'].includes(user.role ?? '')) {
         redirectPath = '/dashboard'
       }
       

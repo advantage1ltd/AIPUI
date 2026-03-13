@@ -5,12 +5,12 @@ import { Layout } from '@/components/layout/Layout';
 import LoginPage from '@/pages/LoginPage';
 import Index from '@/pages/Index';
 import CustomerDetailPage from '@/pages/customer/CustomerDetailPage';
-import ActionCalendar from '@/pages/ActionCalendar';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { UserRole } from '@/types/user';
 import { PageAccessProvider } from '@/contexts/PageAccessContext';
 import { CustomerSelectionUrlSync } from '@/components/customer/CustomerSelectionUrlSync';
 import { LoadingFallback } from '@/components/LoadingFallback';
+import { SessionTimeoutManager } from '@/components/session/SessionTimeoutManager';
 
 // Component to normalize paths and fix double slashes
 const PathNormalizer = () => {
@@ -86,16 +86,20 @@ const NavigationTracker = () => {
 				}
 			}
 			
-			// Log navigation chain for redirect loops
+			// Log navigation chain for redirect loops (pathname only; ignore search/hash to avoid false positives)
 			if (navigationHistoryRef.current.length >= 3) {
 				const recent = navigationHistoryRef.current.slice(-3);
-				const isLoop = recent.every((nav, idx) => 
+				const getPathname = (p: string) => p.split('?')[0].split('#')[0];
+				const chainConnected = recent.every((nav, idx) =>
 					idx === 0 || nav.from === recent[idx - 1].to
 				);
-				if (isLoop && recent[0].from === recent[recent.length - 1].to) {
-					console.error('🔄 [Navigation] ⚠️ POTENTIAL REDIRECT LOOP DETECTED!', {
-						chain: recent.map(n => n.to),
-						timestamps: recent.map(n => new Date(n.timestamp).toISOString())
+				const pathnameLoop = getPathname(recent[0].from) === getPathname(recent[recent.length - 1].to);
+				const pathnamesInChain = [...new Set(recent.flatMap((n) => [getPathname(n.from), getPathname(n.to)]))];
+				const hasActualRouteChange = pathnamesInChain.length > 1;
+				if (chainConnected && pathnameLoop && hasActualRouteChange) {
+					console.warn('🔄 [Navigation] Potential redirect loop:', {
+						chain: recent.map((n) => n.to),
+						timestamps: recent.map((n) => new Date(n.timestamp).toISOString())
 					});
 				}
 			}
@@ -136,6 +140,9 @@ const Profile = lazy(() => import('@/pages/Profile'));
 
 // Other pages
 const BarcodeTestPage = lazy(() => import('./pages/test/BarcodeTestPage'));
+const AboutPage = lazy(() => import('@/pages/AboutPage'));
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
+const TermsPage = lazy(() => import('@/pages/TermsPage'));
 
 const router = createBrowserRouter([
   {
@@ -145,6 +152,7 @@ const router = createBrowserRouter([
         <PathNormalizer />
         <ScrollToTop />
         <NavigationTracker />
+        <SessionTimeoutManager />
         <CustomerSelectionUrlSync />
         <Outlet />
       </PageAccessProvider>
@@ -153,6 +161,30 @@ const router = createBrowserRouter([
       {
         path: 'login',
         element: <LoginPage />,
+      },
+      {
+        path: 'about',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <AboutPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'privacy',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <PrivacyPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'terms',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <TermsPage />
+          </Suspense>
+        ),
       },
       {
         path: 'test/barcode',
@@ -181,16 +213,6 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'action-calendar',
-            element: (
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <ActionCalendar />
-                </Suspense>
-              </ProtectedRoute>
-            ),
-          },
-          {
             path: 'profile',
             element: (
               <ProtectedRoute>
@@ -212,7 +234,7 @@ const router = createBrowserRouter([
           {
             path: 'administration/user-setup',
             element: (
-              <ProtectedRoute allowedRoles={['administrator', 'advantageonehoofficer'] as UserRole[]}>
+              <ProtectedRoute allowedRoles={['administrator', 'manager'] as UserRole[]}>
                 <UserSetup />
               </ProtectedRoute>
             ),
@@ -220,7 +242,7 @@ const router = createBrowserRouter([
           {
             path: 'administration/employee-registration',
             element: (
-              <ProtectedRoute allowedRoles={['administrator', 'advantageonehoofficer'] as UserRole[]}>
+              <ProtectedRoute allowedRoles={['administrator', 'manager'] as UserRole[]}>
                 <Suspense fallback={<LoadingFallback />}>
                   <EmployeeRegistration />
                 </Suspense>
@@ -230,7 +252,7 @@ const router = createBrowserRouter([
           {
             path: 'administration/customer-setup',
             element: (
-              <ProtectedRoute allowedRoles={['administrator', 'advantageonehoofficer'] as UserRole[]}>
+              <ProtectedRoute allowedRoles={['administrator', 'manager'] as UserRole[]}>
                 <CustomerSetup />
               </ProtectedRoute>
             ),
@@ -249,7 +271,7 @@ const router = createBrowserRouter([
           {
             path: 'operations/incident-graph',
             element: (
-              <ProtectedRoute allowedRoles={['administrator', 'advantageoneofficer', 'customerhomanager', 'customersitemanager'] as UserRole[]}>
+              <ProtectedRoute allowedRoles={['administrator', 'manager', 'store'] as UserRole[]}>
                 <Suspense fallback={<LoadingFallback />}>
                   <IncidentGraphPage />
                 </Suspense>
@@ -260,7 +282,7 @@ const router = createBrowserRouter([
             path: 'operations/crime-intelligence',
             element: (
               <ProtectedRoute 
-                allowedRoles={['administrator', 'advantageonehoofficer', 'advantageoneofficer', 'customerhomanager', 'customersitemanager'] as UserRole[]}
+                allowedRoles={['administrator', 'manager', 'store'] as UserRole[]}
                 accessPath="/operations/crime-intelligence"
               >
                 <Suspense fallback={<LoadingFallback />}>
@@ -273,7 +295,7 @@ const router = createBrowserRouter([
             path: 'operations/alert-rules',
             element: (
               <ProtectedRoute 
-                allowedRoles={['administrator', 'advantageonehoofficer', 'customersitemanager', 'customerhomanager'] as UserRole[]}
+                allowedRoles={['administrator', 'manager'] as UserRole[]}
                 accessPath="/operations/alert-rules"
               >
                 <Suspense fallback={<LoadingFallback />}>
@@ -286,7 +308,7 @@ const router = createBrowserRouter([
             path: 'analytics/data-analytics-hub',
             element: (
               <ProtectedRoute
-                allowedRoles={['administrator', 'advantageonehoofficer', 'customerhomanager'] as UserRole[]}
+                allowedRoles={['administrator', 'manager'] as UserRole[]}
                 accessPath="/analytics/data-analytics-hub"
                 enforcePageAccess={false}
               >

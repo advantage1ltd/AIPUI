@@ -13,8 +13,8 @@ const defaultRouteConfig: RouteConfig[] = [
   { path: '/login', requireAuth: false },
   { path: '/dashboard', requireAuth: true },
   { path: '/admin/*', roles: ['administrator'], requireAuth: true },
-  { path: '/customer/*', roles: ['customerhomanager', 'customersitemanager'], requireAuth: true },
-  { path: '/officer/*', roles: ['advantageoneofficer', 'advantageonehoofficer'], requireAuth: true },
+  { path: '/customer/*', roles: ['manager', 'store'], requireAuth: true },
+  { path: '/officer/*', roles: ['store', 'manager'], requireAuth: true },
 ];
 
 /**

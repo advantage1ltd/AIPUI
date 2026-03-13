@@ -42,7 +42,6 @@ import { TaskCard } from '@/components/dashboard/TaskCard'
 import { IncidentTable } from '@/components/dashboard/IncidentTable'
 import { OfficerPerformance } from '@/components/dashboard/OfficerPerformance'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from 'recharts'
-import { MOCK_INCIDENTS } from '@/data/mockIncidents'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -53,13 +52,17 @@ import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 import { analyticsService } from '@/services/analyticsService'
 import { customerDashboardService } from '@/services/dashboardService'
 import { incidentsApi } from '@/services/api/incidents'
+import { alertInstancesApi } from '@/services/api/alertInstances'
+import { classificationApi } from '@/services/api/classification'
 import type { AnalyticsHubData } from '@/types/analytics'
+import type { AlertSummary } from '@/types/alertInstances'
+import type { IncidentAnalyticsSummary, RiskIndicator } from '@/types/classification'
+import type { Incident } from '@/types/incidents'
 import { BASE_API_URL } from '@/config/api'
 import { sessionStore } from '@/state/sessionStore'
 
 // Lazy load the dashboard components
 const OfficerDashboard = React.lazy(() => import('@/pages/Dashboard/OfficerDashboard'))
-const CustomerDashboard = React.lazy(() => import('@/pages/Dashboard/CustomerDashboard'))
 
 // Customer-specific data
 const customerData = {
@@ -510,7 +513,11 @@ const formatCurrency = (value: number): string => {
   }
 }
 
-const AdminDashboard = () => {
+interface AdminDashboardProps {
+  viewRole?: 'administrator' | 'manager'
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ viewRole = 'administrator' }) => {
   const location = useLocation();
   const { currentRole, isTestMode, testRole, isLoading } = usePageAccess();
   const effectiveRole = isTestMode && testRole ? testRole : currentRole;
@@ -527,8 +534,10 @@ const AdminDashboard = () => {
   const [fromDateInput, setFromDateInput] = React.useState('');
   const [toDateInput, setToDateInput] = React.useState('');
   const [dateRangeError, setDateRangeError] = React.useState<string | null>(null);
-  const [loadedIncidents, setLoadedIncidents] = React.useState<typeof MOCK_INCIDENTS>([]);
+  const [loadedIncidents, setLoadedIncidents] = React.useState<Incident[]>([]);
   const [incidentsLoading, setIncidentsLoading] = React.useState(true);
+  const [alertSummary, setAlertSummary] = React.useState<AlertSummary | null>(null);
+  const [aiAnalytics, setAiAnalytics] = React.useState<IncidentAnalyticsSummary | null>(null);
   const isDateRangeActive = Boolean(fromDate || toDate);
 
   const handleApplyDateRange = () => {
@@ -623,7 +632,7 @@ const AdminDashboard = () => {
         // Priority order for site name: SiteName > LocationName > siteName > locationName
         const transformedIncidents = incidents.map((inc: any) => {
           const siteName = inc.SiteName || inc.LocationName || inc.siteName || inc.locationName || inc.Location || '';
-          
+
           return {
             id: inc.Id || inc.id || '',
             customerId: inc.CustomerId || inc.customerId || 0,
@@ -667,6 +676,22 @@ const AdminDashboard = () => {
             offenderMarks: inc.OffenderMarks || inc.offenderMarks || '',
             offenderAddress: inc.OffenderAddress || inc.offenderAddress || undefined,
             dateInputted: inc.DateInputted || inc.dateInputted || '',
+            // AI-assisted classification (for AI Insight column)
+            incidentCategory: inc.IncidentCategory || inc.incidentCategory || undefined,
+            incidentCategoryConfidence:
+              typeof inc.IncidentCategoryConfidence === 'number'
+                ? inc.IncidentCategoryConfidence
+                : typeof inc.incidentCategoryConfidence === 'number'
+                ? inc.incidentCategoryConfidence
+                : undefined,
+            riskLevel: (inc.RiskLevel || inc.riskLevel || '').toLowerCase() || undefined,
+            riskScore:
+              typeof inc.RiskScore === 'number'
+                ? inc.RiskScore
+                : typeof inc.riskScore === 'number'
+                ? inc.riskScore
+                : undefined,
+            classificationVersion: inc.ClassificationVersion || inc.classificationVersion || undefined,
           };
         });
 
@@ -800,6 +825,29 @@ const AdminDashboard = () => {
     loadAnalytics();
   }, []);
 
+  // Load alert summary and AI analytics from new backend endpoints
+  React.useEffect(() => {
+    const loadEnhancedData = async () => {
+      try {
+        const [alertData, analyticsData] = await Promise.allSettled([
+          alertInstancesApi.getSummary(),
+          classificationApi.getAnalyticsSummary()
+        ])
+
+        if (alertData.status === 'fulfilled') {
+          setAlertSummary(alertData.value)
+        }
+        if (analyticsData.status === 'fulfilled') {
+          setAiAnalytics(analyticsData.value)
+        }
+      } catch (err) {
+        console.warn('Enhanced dashboard data not available:', err)
+      }
+    }
+
+    loadEnhancedData()
+  }, [])
+
   // Get regions for dropdown – use ONLY real regions from API for the current customer
   const regions = React.useMemo(() => {
     return regionOptions;
@@ -906,7 +954,11 @@ const AdminDashboard = () => {
           officerName: incident.officerName,
           date: incident.dateOfIncident,
           amount: incident.totalValueRecovered || incident.value || 0,
-          incidentType: incident.incidentType
+          incidentType: incident.incidentType,
+          incidentCategory: incident.incidentCategory,
+          incidentCategoryConfidence: incident.incidentCategoryConfidence,
+          riskLevel: incident.riskLevel,
+          riskScore: incident.riskScore,
         }))
     }
 
@@ -1034,43 +1086,37 @@ const AdminDashboard = () => {
     return []
   }, [filteredIncidents, analyticsData, isDateRangeActive])
 
-  // Generate alerts data
+  // Generate alerts data from live API when available
   const alerts = React.useMemo(() => {
+    if (alertSummary && alertSummary.recentAlerts.length > 0) {
+      return alertSummary.recentAlerts.map(alert => {
+        const createdDate = new Date(alert.createdAt)
+        const minutesAgo = Math.round((Date.now() - createdDate.getTime()) / 60000)
+        const timeLabel = minutesAgo < 60
+          ? `${minutesAgo} minutes ago`
+          : minutesAgo < 1440
+            ? `${Math.round(minutesAgo / 60)} hours ago`
+            : `${Math.round(minutesAgo / 1440)} days ago`
+
+        return {
+          id: alert.alertInstanceId.toString(),
+          type: alert.severity === 'high' ? 'error' as const : alert.severity === 'medium' ? 'warning' as const : 'info' as const,
+          title: alert.alertRuleName || 'Alert Triggered',
+          message: alert.message || 'An alert rule was matched',
+          time: timeLabel,
+          priority: alert.severity as 'high' | 'medium' | 'low',
+          status: alert.status
+        }
+      })
+    }
+
     return [
-      {
-        id: '1',
-        type: 'warning' as const,
-        title: 'High Priority Incident Reported',
-        message: 'New high-priority incident at Leicester City Centre requires immediate attention',
-        time: '15 minutes ago',
-        priority: 'high' as const
-      },
-      {
-        id: '2',
-        type: 'info' as const,
-        title: 'Alert Rule Triggered',
-        message: 'Bulk theft alert rule matched for Nottingham Victoria store',
-        time: '1 hour ago',
-        priority: 'medium' as const
-      },
-      {
-        id: '3',
-        type: 'error' as const,
-        title: 'Police Involvement Required',
-        message: 'Incident INC-000142 requires police assistance - URN assigned',
-        time: '2 hours ago',
-        priority: 'high' as const
-      },
-      {
-        id: '4',
-        type: 'warning' as const,
-        title: 'Repeat Offender Detected',
-        message: 'Known repeat offender identified at Birmingham Bull Ring',
-        time: '3 hours ago',
-        priority: 'medium' as const
-      }
+      { id: '1', type: 'warning' as const, title: 'High Priority Incident Reported', message: 'New high-priority incident requires immediate attention', time: '15 minutes ago', priority: 'high' as const, status: 'new' },
+      { id: '2', type: 'info' as const, title: 'Alert Rule Triggered', message: 'Bulk theft alert rule matched', time: '1 hour ago', priority: 'medium' as const, status: 'new' },
+      { id: '3', type: 'error' as const, title: 'Police Involvement Required', message: 'Incident requires police assistance — URN assigned', time: '2 hours ago', priority: 'high' as const, status: 'acknowledged' },
+      { id: '4', type: 'warning' as const, title: 'Repeat Offender Detected', message: 'Known repeat offender identified', time: '3 hours ago', priority: 'medium' as const, status: 'new' }
     ]
-  }, [])
+  }, [alertSummary])
 
   // Use real backend data for quick statistics
   const quickStats = React.useMemo(() => {
@@ -1389,7 +1435,8 @@ const AdminDashboard = () => {
   }
 
   // Show appropriate dashboard based on role (after all hooks have been called)
-  if (effectiveRole === 'advantageoneofficer' || effectiveRole === 'advantageonehoofficer') {
+  // Store and security-officer use the officer dashboard; admin/manager use the management dashboard UI below.
+  if (effectiveRole === 'store' || effectiveRole === 'security-officer') {
     return (
       <Suspense fallback={
         <div className="flex items-center justify-center min-h-screen">
@@ -1402,26 +1449,14 @@ const AdminDashboard = () => {
         <OfficerDashboard />
       </Suspense>
     )
-  } else if (effectiveRole === 'customersitemanager' || effectiveRole === 'customerhomanager') {
-    return (
-      <Suspense fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="space-y-4 text-center">
-            <div className="text-lg font-medium">Loading Customer Dashboard...</div>
-            <div className="text-sm text-gray-500">Please wait</div>
-          </div>
-        </div>
-      }>
-        <CustomerDashboard userRole={effectiveRole === 'customersitemanager' ? 'customersitemanager' : 'customerhomanager'} />
-      </Suspense>
-    )
   }
 
-  // Admin dashboard UI (only reached if role is administrator)
+  // Management dashboard UI (admin/manager)
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="space-y-6">
         <DashboardGreeting />
+        
         
         {/* Loading State */}
         {incidentsLoading && (
@@ -1435,7 +1470,9 @@ const AdminDashboard = () => {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard Overview</h2>
-            <Badge variant="secondary" className="text-xs">Admin View</Badge>
+            <Badge variant="secondary" className="text-xs">
+              {viewRole === 'administrator' ? 'Admin View' : 'Manager View'}
+            </Badge>
             {selectedRegion !== 'all' && (
               <Badge variant="default" className="text-xs bg-blue-600">
                 <MapPin className="h-3 w-3 mr-1" />
@@ -1743,6 +1780,47 @@ const AdminDashboard = () => {
 
           {/* Sidebar Content */}
           <div className="lg:col-span-2 space-y-4">
+            {/* AI Risk Indicators */}
+            {aiAnalytics && aiAnalytics.riskIndicators.length > 0 && (
+              <Card>
+                <CardHeader className="p-2 md:p-4">
+                  <CardTitle className="text-base font-medium md:text-lg lg:text-xl flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    AI Risk Indicators
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {aiAnalytics.riskIndicators.map((indicator, idx) => (
+                      <div key={idx} className="p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{indicator.indicator}</span>
+                          <Badge
+                            variant={indicator.level === 'high' ? 'destructive' : indicator.level === 'medium' ? 'secondary' : 'default'}
+                            className="text-xs"
+                          >
+                            {indicator.level}
+                          </Badge>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+                          <div
+                            className={cn(
+                              'h-1.5 rounded-full transition-all',
+                              indicator.level === 'high' ? 'bg-red-500' : indicator.level === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
+                            )}
+                            style={{ width: `${Math.round(indicator.score * 100)}%` }}
+                          />
+                        </div>
+                        {indicator.description && (
+                          <p className="text-xs text-muted-foreground">{indicator.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Alerts */}
             <Card>
               <CardHeader className="p-2 md:p-4 flex flex-row items-center justify-between">
@@ -1751,7 +1829,7 @@ const AdminDashboard = () => {
                   Alerts
                 </CardTitle>
                 <Badge variant="destructive" className="text-xs">
-                  {alerts.filter(a => a.priority === 'high').length} New
+                  {alertSummary ? alertSummary.newCount : alerts.filter(a => a.priority === 'high').length} New
                 </Badge>
               </CardHeader>
               <CardContent className="p-0">

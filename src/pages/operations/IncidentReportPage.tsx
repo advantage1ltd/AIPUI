@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from "react"
 import { Incident, IncidentType, StolenItem } from "@/types/incidents"
 import { IncidentForm } from "@/components/operations/IncidentForm"
 import { IncidentsTable } from "@/components/operations/IncidentsTable"
+import { IncidentClassificationBadge } from "@/components/operations/IncidentClassificationBadge"
+import { EvidenceTimeline } from "@/components/operations/EvidenceTimeline"
 import { Button } from "@/components/ui/button"
 import { useToast } from '@/components/ui/use-toast'
 import {
@@ -82,6 +84,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
   const [editingIncident, setEditingIncident] = useState<Incident | null>(null)
   const [deletingIncident, setDeletingIncident] = useState<Incident | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [scanningBarcode, setScanningBarcode] = useState(false)
@@ -241,13 +244,23 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
     }
   }, [isCustomerView, customerId])
 
+  // Debounce search term so we don't refetch on every keypress
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim())
+      setCurrentPage(1)
+    }, 300)
+
+    return () => clearTimeout(handle)
+  }, [searchTerm])
+
   // Fetch incidents using the API service
   const { data: incidentsResponse = { data: [], pagination: { currentPage: 1, totalPages: 1, pageSize: 10, totalCount: 0, hasPrevious: false, hasNext: false } }, isLoading, error } = useQuery({
-    queryKey: ['incidents', currentPage, searchTerm, customerId, siteId, fromDate, toDate, incidentTypeFilter, regionFilter],
+    queryKey: ['incidents', currentPage, debouncedSearch, customerId, siteId, fromDate, toDate, incidentTypeFilter, regionFilter],
     queryFn: () => incidentsApi.getIncidents({
       page: currentPage,
       pageSize: itemsPerPage,
-      search: searchTerm,
+      search: debouncedSearch || undefined,
       ...(fromDate && { fromDate }),
       ...(toDate && { toDate }),
       ...(incidentTypeFilter && { incidentType: incidentTypeFilter }),
@@ -308,24 +321,8 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
     }
   })
 
-  // Fetch all incidents for stats calculation (separate query to get complete data)
-  const { data: allIncidentsResponse } = useQuery({
-    queryKey: ['incidents-stats', searchTerm, customerId, siteId, fromDate, toDate, incidentTypeFilter, regionFilter],
-    queryFn: () => incidentsApi.getIncidents({
-      page: 1,
-      pageSize: 1000, // Large page size to get all incidents for stats
-      search: searchTerm,
-      ...(fromDate && { fromDate }),
-      ...(toDate && { toDate }),
-      ...(incidentTypeFilter && { incidentType: incidentTypeFilter }),
-      ...(regionFilter !== 'all' && { regionId: regionFilter }),
-      ...(isCustomerView && customerId && { customerId }),
-      ...(siteId && { siteId })
-    })
-  })
-
   const filteredIncidents = useMemo(() => {
-    const baseData = allIncidentsResponse?.data || incidentsResponse.data
+    const baseData = incidentsResponse.data
 
     if (!isClientFilterActive) {
     	return baseData
@@ -363,14 +360,13 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
       if (toBoundary && incidentDate > toBoundary) return false
       return true
     })
-  }, [allIncidentsResponse?.data, incidentsResponse.data, isClientFilterActive, fromDate, toDate, incidentTypeFilter, regionFilter, regions])
+  }, [incidentsResponse.data, isClientFilterActive, fromDate, toDate, incidentTypeFilter, regionFilter, regions])
 
   // Calculate statistics using useMemo with null checks
   const stats = useMemo(() => {
-    // Use filtered data when a date range is active
-    const statsData = isClientFilterActive
-      ? filteredIncidents
-      : allIncidentsResponse?.data || incidentsResponse.data
+    // Use filtered data when a date or region/type filter is active,
+    // otherwise use the current page data and the server-reported totalCount.
+    const statsData = isClientFilterActive ? filteredIncidents : incidentsResponse.data
     
     return {
       totalAmountSaved: Array.prototype.reduce.call(
@@ -381,9 +377,9 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
       uniqueSites: new Set(statsData.map(incident => incident?.siteName).filter(Boolean)).size,
       totalIncidents: isClientFilterActive
         ? filteredIncidents.length
-        : allIncidentsResponse?.pagination?.totalCount || incidentsResponse.pagination?.totalCount || statsData.length
+        : incidentsResponse.pagination?.totalCount || statsData.length
     }
-  }, [allIncidentsResponse?.data, allIncidentsResponse?.pagination?.totalCount, incidentsResponse.data, incidentsResponse.pagination?.totalCount, isClientFilterActive, filteredIncidents])
+  }, [incidentsResponse.data, incidentsResponse.pagination?.totalCount, isClientFilterActive, filteredIncidents])
 
   const handleSubmit = useCallback((incident: Incident) => {
     mutation.mutate(incident)
@@ -520,12 +516,13 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
 
       const newItem: StolenItem = {
         id: Date.now().toString(),
+        barcode,
         category: mappedCategory,
         productName: productData.productName || '',
-        description: '', // Empty - officer will fill this manually
-        cost: 0, // Set to 0 - officer will fill this manually
-        quantity: 1, // Default quantity is 1, officer can change
-        totalAmount: 0 // Will be calculated as cost * quantity
+        description: '',
+        cost: 0,
+        quantity: 1,
+        totalAmount: 0
       }
 
       // Update editingIncident if it exists, or initialize a new one
@@ -668,7 +665,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
             </Card>
             <Card className="bg-gradient-to-br from-emerald-800 to-emerald-900 border-emerald-700 shadow-md col-span-1">
               <CardHeader className="flex flex-row items-center justify-between p-2 md:p-4 xl:p-6 pb-1 md:pb-2 xl:pb-3">
-                <CardTitle className="text-xs sm:text-sm lg:text-base xl:text-lg font-medium text-white">Unique Sites</CardTitle>
+                <CardTitle className="text-xs sm:text-sm lg:text-base xl:text-lg font-medium text-white">Unique Stores</CardTitle>
                 <Store className="h-3 w-3 sm:h-4 sm:w-4 xl:h-5 xl:w-5 text-emerald-300" />
               </CardHeader>
               <CardContent className="p-2 md:p-4 xl:p-6 pt-0 md:pt-1 xl:pt-2">
@@ -931,9 +928,9 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-medium text-sm lg:text-base xl:text-lg text-gray-900 py-3 xl:py-4 whitespace-nowrap">Customer Name</TableHead>
-                      <TableHead className="font-medium text-sm lg:text-base xl:text-lg text-gray-900 py-3 xl:py-4 whitespace-nowrap">Site Name</TableHead>
-                      <TableHead className="font-medium text-sm lg:text-base xl:text-lg text-gray-900 py-3 xl:py-4 whitespace-nowrap">Officer Name</TableHead>
+                      <TableHead className="font-medium text-sm lg:text-base xl:text-lg text-gray-900 py-3 xl:py-4 whitespace-nowrap">Company Name</TableHead>
+                      <TableHead className="font-medium text-sm lg:text-base xl:text-lg text-gray-900 py-3 xl:py-4 whitespace-nowrap">Store Name</TableHead>
+                      <TableHead className="font-medium text-sm lg:text-base xl:text-lg text-gray-900 py-3 xl:py-4 whitespace-nowrap">Staff Member Name</TableHead>
                       <TableHead className="font-medium text-sm lg:text-base xl:text-lg text-gray-900 py-3 xl:py-4 whitespace-nowrap hidden lg:table-cell">
                         <div className="flex items-center gap-2 xl:gap-3">
                           <Calendar className="w-4 h-4 xl:w-5 xl:h-5 text-gray-500" />
@@ -1143,15 +1140,15 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Customer Name</label>
+                        <label className="text-sm font-medium text-gray-500">Company Name</label>
                         <p className="mt-1 text-sm text-gray-900">{viewingIncident.customerName || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Site Name</label>
+                        <label className="text-sm font-medium text-gray-500">Store Name</label>
                         <p className="mt-1 text-sm text-gray-900">{viewingIncident.siteName || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Officer Name</label>
+                        <label className="text-sm font-medium text-gray-500">Staff Member Name</label>
                         <p className="mt-1 text-sm text-gray-900">{viewingIncident.officerName || 'N/A'}</p>
                       </div>
                       <div>
@@ -1377,6 +1374,19 @@ export default function IncidentReportPage({ isCustomerView = false, customerId,
                           </tbody>
                         </table>
                       </div>
+                    </div>
+                  )}
+                  {/* AI Classification */}
+                  {viewingIncident.id && (
+                    <div className="mb-4">
+                      <IncidentClassificationBadge incidentId={viewingIncident.id} />
+                    </div>
+                  )}
+
+                  {/* Evidence Chain */}
+                  {viewingIncident.id && (
+                    <div className="mb-4">
+                      <EvidenceTimeline incidentId={viewingIncident.id} />
                     </div>
                   )}
                 </div>

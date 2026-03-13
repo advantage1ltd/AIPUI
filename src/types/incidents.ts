@@ -49,6 +49,7 @@ export interface OffenderAddress {
 
 export interface StolenItem {
   id: string;
+  barcode?: string;
   category?: string;
   description?: string;
   productName?: string;
@@ -135,6 +136,17 @@ export interface Incident {
 
   // Special fields
   arrestSaveComment?: string;
+
+  // Offender analytics
+  offenderId?: string;
+  modusOperandi?: string[];
+
+  // AI-assisted classification
+  incidentCategory?: string;
+  incidentCategoryConfidence?: number;
+  riskLevel?: 'low' | 'medium' | 'high';
+  riskScore?: number;
+  classificationVersion?: string;
 
   // View configuration (for role-based access)
   viewConfig?: {

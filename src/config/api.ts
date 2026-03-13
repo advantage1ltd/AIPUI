@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { sessionStore } from '@/state/sessionStore'
 import { API_BASE_URL, isDevelopment } from './env'
 
@@ -50,7 +50,83 @@ api.interceptors.request.use(
   }
 )
 
-// Add response interceptor for error handling
+// Simple in-memory refresh state to prevent concurrent refresh calls
+let isRefreshing = false
+let refreshPromise: Promise<string | null> | null = null
+
+type AxiosRequestConfigWithRetry = InternalAxiosRequestConfig & {
+  _retry?: boolean
+}
+
+const refreshAccessToken = async (): Promise<string | null> => {
+  const refreshToken = sessionStore.getRefreshToken()
+  if (!refreshToken) {
+    return null
+  }
+
+  try {
+    // Use a bare axios instance to avoid interceptor recursion
+    const response = await axios.post(
+      `${BASE_API_URL}/Auth/refresh`,
+      { refreshToken },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        timeout: 10000,
+      }
+    )
+
+    const apiResponse = response.data
+    const isSuccess = apiResponse?.Success ?? apiResponse?.success ?? false
+    const data = apiResponse?.Data ?? apiResponse?.data
+
+    if (!isSuccess || !data) {
+      if (isDevelopment) {
+        console.warn('⚠️ [Auth] Refresh token response invalid or unsuccessful:', apiResponse)
+      }
+      return null
+    }
+
+    const loginData = data as any
+    const newAccessToken: string | undefined =
+      loginData?.AccessToken ?? loginData?.accessToken
+    const newRefreshToken: string | undefined =
+      loginData?.RefreshToken ?? loginData?.refreshToken
+    const expiresAt: string | undefined =
+      loginData?.ExpiresAt ?? loginData?.expiresAt
+    const user = loginData?.User ?? loginData?.user
+
+    if (!newAccessToken || !user) {
+      if (isDevelopment) {
+        console.error('❌ [Auth] Refresh response missing token or user:', {
+          hasAccessToken: !!newAccessToken,
+          hasUser: !!user,
+        })
+      }
+      return null
+    }
+
+    sessionStore.setToken(newAccessToken)
+    sessionStore.setRefreshToken(newRefreshToken ?? null)
+    sessionStore.setTokenExpiresAt(expiresAt ?? null)
+    sessionStore.setUser(user)
+
+    if (isDevelopment) {
+      console.log('✅ [Auth] Access token refreshed successfully')
+    }
+
+    return newAccessToken
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('❌ [Auth] Failed to refresh access token:', error)
+    }
+    return null
+  }
+}
+
+// Add response interceptor for error handling + token refresh
 api.interceptors.response.use(
   (response) => {
     if (isDevelopment) {
@@ -61,9 +137,9 @@ api.interceptors.response.use(
     }
     return response
   },
-  (error) => {
+  async (error: AxiosError) => {
     const status = error.response?.status;
-    const url = error.config?.url || '';
+    const url = (error.config as AxiosRequestConfigWithRetry)?.url || '';
     
     // For expected errors (404, etc.), log less verbosely
     const isExpectedError = status === 404 || status === 403;
@@ -95,31 +171,66 @@ api.interceptors.response.use(
       }
     }
     
-    if (error.response?.status === 401) {
+    if (status === 401) {
+      const config = (error.config || {}) as AxiosRequestConfigWithRetry
       const isSettingsEndpoint = url.includes('/PageAccess/settings') || url.includes('/pageaccess/settings')
       const isLoginPage = window.location.pathname.includes('/login')
       const isLoginEndpoint = url.includes('/Auth/login')
-      const isAuthValidation = url.includes('/Auth/me') || url.includes('/Auth/refresh')
-      const hasToken = sessionStore.getToken()
+      const isRefreshEndpoint = url.includes('/Auth/refresh')
+      const isAuthValidation = url.includes('/Auth/me') || isRefreshEndpoint
+      const hasToken = !!sessionStore.getToken()
 
       console.warn('⚠️ [API 401]', {
         url,
-        method: error.config?.method?.toUpperCase(),
+        method: config?.method?.toUpperCase(),
         isAuthValidation,
         isLoginEndpoint,
         isSettingsEndpoint,
         isLoginPage,
-        hasToken: !!hasToken,
+        hasToken,
+        hasRefreshToken: !!sessionStore.getRefreshToken(),
       })
 
+      // Never try to refresh for login or refresh endpoints themselves
+      if (!isLoginEndpoint && !isRefreshEndpoint) {
+        const refreshToken = sessionStore.getRefreshToken()
+
+        // Only attempt refresh if we have a refresh token and haven't retried this request yet
+        if (refreshToken && !config._retry) {
+          config._retry = true
+
+          try {
+            if (!isRefreshing) {
+              isRefreshing = true
+              refreshPromise = refreshAccessToken().finally(() => {
+                isRefreshing = false
+              })
+            }
+
+            const newAccessToken = await refreshPromise!
+
+            if (newAccessToken) {
+              // Update Authorization header and retry original request
+              config.headers = config.headers || {}
+              config.headers.Authorization = `Bearer ${newAccessToken}`
+              return api(config)
+            }
+          } catch (refreshError) {
+            if (isDevelopment) {
+              console.error('❌ [API] Error during token refresh:', refreshError)
+            }
+          }
+        }
+      }
+
       // Only force logout + redirect when the token itself is proven invalid
-      // (i.e. /Auth/me or /Auth/refresh returned 401). For all other endpoints,
-      // surface the 401 to callers so a single failing data endpoint does not
-      // kick the user back to the login screen.
-      if (isAuthValidation && !isLoginPage && hasToken) {
-        console.warn('⚠️ [API 401] Token invalid/expired — clearing session and redirecting to /login')
+      // (i.e. /Auth/me or /Auth/refresh returned 401), or when refresh failed.
+      if ((isAuthValidation && !isLoginPage && hasToken) || !sessionStore.getRefreshToken()) {
+        console.warn('⚠️ [API 401] Token invalid/expired and refresh unavailable/failed — clearing session and redirecting to /login')
         sessionStore.clearAll()
-        window.location.href = '/login'
+        if (!isLoginPage) {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)
@@ -220,6 +331,39 @@ export const MYSTERY_SHOPPER_ENDPOINTS = {
   LOCATIONS: '/mystery-shopper/locations',
   EVALUATION_CRITERIA: '/mystery-shopper/evaluation-criteria',
   EVALUATIONS: '/mystery-shopper/evaluations'
+} as const
+
+// Classification & AI endpoints
+export const CLASSIFICATION_ENDPOINTS = {
+  CLASSIFY: '/Classification/classify',
+  CLASSIFY_EXISTING: (id: number) => `/Classification/classify/${id}`,
+} as const
+
+// Analytics endpoints
+export const ANALYTICS_ENDPOINTS = {
+  SUMMARY: '/Analytics/summary',
+  HUB: '/Analytics/hub',
+  AI_PATTERNS: '/AiAnalytics/patterns',
+  AI_RISK_SCORES: '/AiAnalytics/risk-scores',
+} as const
+
+// Evidence endpoints
+export const EVIDENCE_ENDPOINTS = {
+  REGISTER: (incidentId: number) => `/Evidence/incidents/${incidentId}/evidence`,
+  BY_INCIDENT: (incidentId: number) => `/Evidence/incidents/${incidentId}`,
+  DETAIL: (id: number) => `/Evidence/${id}`,
+  SCAN: '/Evidence/scan',
+  CUSTODY_EVENT: (id: number) => `/Evidence/${id}/custody`,
+} as const
+
+// Alert Instance endpoints
+export const ALERT_INSTANCE_ENDPOINTS = {
+  LIST: '/alerts',
+  DETAIL: (id: number) => `/alerts/${id}`,
+  SUMMARY: '/alerts/summary',
+  ACKNOWLEDGE: (id: number) => `/alerts/${id}/acknowledge`,
+  ESCALATE: (id: number) => `/alerts/${id}/escalate`,
+  RESOLVE: (id: number) => `/alerts/${id}/resolve`,
 } as const
 
 // API Headers

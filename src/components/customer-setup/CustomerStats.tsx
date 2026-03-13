@@ -125,7 +125,7 @@ export function CustomerStats({ selectedCustomerId, updateTrigger }: CustomerSta
       iconColor: "text-blue-100"
     },
     {
-      title: selectedCustomerId ? "Customer Type" : "Customer Types",
+      title: selectedCustomerId ? "Company Type" : "Company Types",
       value: statsData.customerTypes,
       description: selectedCustomerId 
         ? "Service type" 
