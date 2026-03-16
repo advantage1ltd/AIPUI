@@ -76,7 +76,7 @@ const formSchema = z.object({
     category: z.string(),
     productName: z.string(),
   })).optional(),
-  dutyManagerName: z.string().min(1, "Duty manager name is required"),
+  dutyManagerName: z.string().optional(),
   status: z.enum(['pending', 'resolved', 'in-progress']).default('pending'),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   actionTaken: z.string().optional(),
@@ -1121,7 +1121,7 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                 </svg>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">New Incident Report</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Incident Report</h1>
                 <p className="text-gray-600 mt-1">Complete all required fields to submit your incident report. Fields marked with * are mandatory.</p>
               </div>
             </div>
@@ -1237,9 +1237,9 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                     name="officerName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-gray-700 mb-2">Employee Name *</FormLabel>
+                        <FormLabel className="text-sm font-semibold text-gray-700 mb-2">Colleague Name *</FormLabel>
                         <FormControl>
-                          <Input className="h-12 border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg shadow-sm" {...field} placeholder="Enter staff member name" />
+                          <Input className="h-12 border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg shadow-sm" {...field} placeholder="Enter colleague name" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -1251,7 +1251,7 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                     name="officerRole"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-gray-700 mb-2">Employee Role *</FormLabel>
+                        <FormLabel className="text-sm font-semibold text-gray-700 mb-2">Colleague Role *</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger className="h-12 border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg shadow-sm">
@@ -1282,7 +1282,7 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                     name="dutyManagerName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-gray-700 mb-2">Duty Manager Name *</FormLabel>
+                        <FormLabel className="text-sm font-semibold text-gray-700 mb-2">Duty Manager Name</FormLabel>
                         <FormControl>
                           <Input className="h-12 border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg shadow-sm" {...field} placeholder="Enter duty manager name" />
                         </FormControl>
