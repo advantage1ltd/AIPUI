@@ -66,7 +66,6 @@ export default defineConfig(({ mode }) => ({
     })] : [])
   ],
   resolve: {
-    dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
     alias: {
       '@': resolve(__dirname, 'src'),
       'react': resolve(__dirname, 'node_modules/react'),

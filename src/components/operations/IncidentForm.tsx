@@ -171,6 +171,13 @@ export interface IncidentFormProps {
 const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit, onCancel, onScanBarcode, onBarcodeScanned, isLoading = false, customerId: propCustomerId, siteId: propSiteId }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'administrator';
+  const isSecurityOfficer = user?.role === 'security-officer';
+  const assignedSiteIds: string[] =
+    (user as any)?.assignedSiteIds ??
+    (user as any)?.AssignedSiteIds ??
+    [];
+  const hasMultipleAssignedSites =
+    isSecurityOfficer && Array.isArray(assignedSiteIds) && assignedSiteIds.length > 1;
   
   // Debug logging (remove in production)
   if (initialData) {
@@ -185,7 +192,7 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
   const [repeatOffenderCount, setRepeatOffenderCount] = useState(0)
   const [isSearchingOffender, setIsSearchingOffender] = useState(false)
   const [offenderHistory, setOffenderHistory] = useState<{
-    matches: RepeatOffenderMatch[];
+    matches: (RepeatOffenderMatch & { similarity?: number; similarityLabel?: 'High' | 'Medium' | 'Low' });
     totalCount: number;
   } | null>(null)
   const [offenderSearchError, setOffenderSearchError] = useState<string | null>(null)
@@ -318,11 +325,31 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
       const serviceUnavailable = result?.serviceUnavailable === true || (result as { ServiceUnavailable?: boolean })?.ServiceUnavailable === true
       const serviceErrorMessage = result?.serviceErrorMessage ?? (result as { ServiceErrorMessage?: string })?.ServiceErrorMessage
       const candidates = result?.candidates ?? (result as { Candidates?: typeof result.candidates })?.Candidates ?? []
-      const matches = candidates.map((c: { offenderName?: string; incidentCount?: number; recentIncidents?: unknown[] }) => ({
-        offenderName: c.offenderName,
-        incidentCount: c.incidentCount,
-        recentIncidents: c.recentIncidents ?? [],
-      }))
+
+      const matches = candidates.map((c) => {
+        const rawSimilarity =
+          (c as { similarity?: number }).similarity ??
+          (c as { Similarity?: number }).Similarity ??
+          0
+        const similarity = Math.max(0, Math.min(1, rawSimilarity || 0))
+
+        let similarityLabel: 'High' | 'Medium' | 'Low' | undefined
+        if (similarity >= 0.9) {
+          similarityLabel = 'High'
+        } else if (similarity >= 0.8) {
+          similarityLabel = 'Medium'
+        } else if (similarity >= 0.7) {
+          similarityLabel = 'Low'
+        }
+
+        return {
+          offenderName: (c as { offenderName?: string }).offenderName,
+          incidentCount: (c as { incidentCount?: number }).incidentCount,
+          recentIncidents: (c as { recentIncidents?: unknown[] }).recentIncidents ?? [],
+          similarity,
+          similarityLabel,
+        }
+      }).sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
 
       if (serviceUnavailable) {
         setOffenderSearchError(
@@ -543,11 +570,29 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
           setRegions(regionsResponse.data)
         }
         if (sitesResponse.success) {
-          setSites(sitesResponse.data)
-          console.log('✅ [IncidentForm] Loaded sites for customer:', sitesResponse.data.length)
+          let nextSites = sitesResponse.data;
+
+          // For security officers, restrict sites to those explicitly assigned to them (if any).
+          if (isSecurityOfficer && Array.isArray(assignedSiteIds) && assignedSiteIds.length > 0) {
+            const assignedSet = new Set(assignedSiteIds.map((id) => String(id)));
+            nextSites = nextSites.filter((site) => {
+              const id =
+                site.siteID != null
+                  ? String(site.siteID)
+                  : site.siteId != null
+                  ? String(site.siteId)
+                  : site.id != null
+                  ? String(site.id)
+                  : '';
+              return id && assignedSet.has(id);
+            });
+          }
+
+          setSites(nextSites)
+          console.log('✅ [IncidentForm] Loaded sites for customer:', nextSites.length)
           if (initialData?.siteId && !didPrefillSiteRef.current) {
-            const matchById = sitesResponse.data.find(site => site.siteID?.toString() === initialData.siteId)
-            const matchByName = sitesResponse.data.find(site =>
+            const matchById = nextSites.find(site => site.siteID?.toString() === initialData.siteId)
+            const matchByName = nextSites.find(site =>
               site.locationName?.toLowerCase().trim() === (initialData.siteName || '').toLowerCase().trim()
             )
             const matchedSite = matchById || matchByName
@@ -1190,7 +1235,10 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-semibold text-gray-700 mb-2">Store Name *</FormLabel>
-                        {!isAdmin && propSiteId ? (
+                        {/* For non-admins with an explicitly provided siteId, we usually lock the store.
+                           However, for security officers who have multiple assigned stores, we want
+                           to let them choose from their assigned sites instead of locking. */}
+                        {!isAdmin && propSiteId && !hasMultipleAssignedSites ? (
                           <div className="flex h-11 w-full rounded-md border border-input bg-gray-50 px-3 py-2 text-sm">
                             {form.watch('siteName') || 'Loading...'}
                           </div>
@@ -1792,7 +1840,7 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                         {offenderHistory && (
                           <div className="mt-3 space-y-3">
                             <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium text-gray-700">Potential Matches</p>
+                              <p className="text-sm font-medium text-gray-700">Potential Matches (very close only)</p>
                               <span className="text-xs text-gray-500">
                                 Showing {offenderHistory.matches.length} of {offenderHistory.totalCount}
                               </span>
@@ -1802,7 +1850,22 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                                 <div key={`${match.offenderName}-${matchIndex}`} className="border border-gray-200 rounded-lg p-2 bg-gray-50">
                                   <div className="flex items-start justify-between gap-2">
                                     <div>
-                                      <p className="text-sm font-semibold text-gray-800">{match.offenderName}</p>
+                                      <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                                        <span>{match.offenderName}</span>
+                                        {typeof match.similarity === 'number' && match.similarityLabel && (
+                                          <span
+                                            className={
+                                              match.similarityLabel === 'High'
+                                                ? 'inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-800'
+                                                : match.similarityLabel === 'Medium'
+                                                  ? 'inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[11px] font-medium text-yellow-800'
+                                                  : 'inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-800'
+                                            }
+                                          >
+                                            {match.similarityLabel} match • {Math.round(match.similarity * 100)}%
+                                          </span>
+                                        )}
+                                      </p>
                                       <p className="text-xs text-gray-600">
                                         DOB: {formatDateSafe(match.offenderDOB, 'dd MMM yyyy')}
                                       </p>

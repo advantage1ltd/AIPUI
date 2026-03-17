@@ -309,7 +309,9 @@ export default function OfficerDashboard() {
         incidentsThisMonth: dashboardData?.stats.incidentsThisMonth ?? 0,
         incidentsLastMonth: dashboardData?.stats.incidentsLastMonth ?? 0,
         totalValueThisMonth: dashboardData?.stats.totalValueSaved ?? 0,
-        totalValueLastMonth: 0
+        totalValueLastMonth: 0,
+        theftThisMonth: 0,
+        theftLastMonth: 0,
       }
     }
 
@@ -331,6 +333,8 @@ export default function OfficerDashboard() {
     let incidentsLastMonth = 0
     let totalValueThisMonth = 0
     let totalValueLastMonth = 0
+    let theftThisMonth = 0
+    let theftLastMonth = 0
 
     for (const inc of incidentsData) {
       const d = parseDate(inc.date)
@@ -342,12 +346,24 @@ export default function OfficerDashboard() {
         ? inc.value
         : (typeof inc.amount === 'number' && !isNaN(inc.amount) ? inc.amount : 0)
 
+      const incidentType = (inc.type || inc.incidentType || '').toLowerCase()
+      const isTheftIncident =
+        incidentType.includes('theft') ||
+        incidentType.includes('stolen') ||
+        incidentType.includes('shoplifting')
+
       if (y === currentYear && m === currentMonth) {
         incidentsThisMonth += 1
         totalValueThisMonth += value
+        if (isTheftIncident) {
+          theftThisMonth += 1
+        }
       } else if (y === prevYear && m === prevMonth) {
         incidentsLastMonth += 1
         totalValueLastMonth += value
+        if (isTheftIncident) {
+          theftLastMonth += 1
+        }
       }
     }
 
@@ -363,7 +379,9 @@ export default function OfficerDashboard() {
       incidentsThisMonth,
       incidentsLastMonth,
       totalValueThisMonth,
-      totalValueLastMonth
+      totalValueLastMonth,
+      theftThisMonth,
+      theftLastMonth,
     }
   }, [incidentsData, dashboardData])
 
@@ -378,15 +396,15 @@ export default function OfficerDashboard() {
     return `${sign}${diff} (${pct.toFixed(0)}%) vs last month`
   }, [computedStats])
 
-  const valueChangeLabel = React.useMemo(() => {
-    const { totalValueThisMonth, totalValueLastMonth } = computedStats
-    if (totalValueLastMonth <= 0) {
-      return totalValueThisMonth > 0 ? 'vs last month' : 'No data for last month'
+  const theftChangeLabel = React.useMemo(() => {
+    const { theftThisMonth, theftLastMonth } = computedStats
+    if (theftLastMonth <= 0) {
+      return theftThisMonth > 0 ? 'vs last month' : 'No data for last month'
     }
-    const diff = totalValueThisMonth - totalValueLastMonth
-    const pct = (diff / Math.max(totalValueLastMonth, 1)) * 100
+    const diff = theftThisMonth - theftLastMonth
+    const pct = (diff / Math.max(theftLastMonth, 1)) * 100
     const sign = diff >= 0 ? '+' : ''
-    return `${sign}£${Math.abs(diff).toFixed(0)} (${pct.toFixed(0)}%) vs last month`
+    return `${sign}${diff} (${pct.toFixed(0)}%) vs last month`
   }, [computedStats])
 
   // Recent Activity: prefer incidents for assigned stores; fallback to dashboard activities
@@ -475,10 +493,10 @@ export default function OfficerDashboard() {
               link="/operations/incident-report"
             />
             <StatCard
-              title="Value Saved"
-              value={`£${(computedStats.totalValueThisMonth / 1000).toFixed(1)}k`}
-              change={valueChangeLabel}
-              trend={computedStats.totalValueThisMonth >= computedStats.totalValueLastMonth ? 'up' : 'down'}
+              title="No. of Theft Reported"
+              value={computedStats.theftThisMonth}
+              change={theftChangeLabel}
+              trend={computedStats.theftThisMonth >= computedStats.theftLastMonth ? 'up' : 'down'}
               icon={TrendingUp}
               gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
               subtitle="This month"

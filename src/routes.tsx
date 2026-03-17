@@ -143,6 +143,7 @@ const BarcodeTestPage = lazy(() => import('./pages/test/BarcodeTestPage'));
 const AboutPage = lazy(() => import('@/pages/AboutPage'));
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
 const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const ContactPage = lazy(() => import('@/pages/ContactPage'));
 
 const router = createBrowserRouter([
   {
@@ -217,6 +218,16 @@ const router = createBrowserRouter([
             element: (
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'contact',
+            element: (
+              <ProtectedRoute enforcePageAccess={false}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ContactPage />
+                </Suspense>
               </ProtectedRoute>
             ),
           },
