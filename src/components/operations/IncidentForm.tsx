@@ -711,11 +711,18 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
       
       // Auto-fill officer information from current user
       if (user) {
-        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-        if (fullName) {
-          form.setValue('officerName', fullName);
+        // For store users, keep colleague name blank for manual selection.
+        // For other roles (security-officer, manager, admin), prefill from the logged-in user.
+        const isStoreUser = user.role === 'store';
+        if (!isStoreUser) {
+          const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+          if (fullName) {
+            form.setValue('officerName', fullName);
+          }
+        } else {
+          form.setValue('officerName', '');
         }
-        
+
         // Auto-fill officer role if available
         if (user.role) {
           // Map user roles to officer roles
@@ -725,7 +732,7 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
             'manager': 'Manager',
             'administrator': 'Admin'
           };
-          
+
           const officerRole = roleMapping[user.role] || 'Security Officer';
           form.setValue('officerRole', officerRole);
         }

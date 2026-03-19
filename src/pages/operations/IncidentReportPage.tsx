@@ -1,9 +1,21 @@
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef, Suspense, lazy } from "react"
 import { Incident, IncidentType, StolenItem } from "@/types/incidents"
-import { IncidentForm } from "@/components/operations/IncidentForm"
-import { IncidentsTable } from "@/components/operations/IncidentsTable"
-import { IncidentClassificationBadge } from "@/components/operations/IncidentClassificationBadge"
-import { EvidenceTimeline } from "@/components/operations/EvidenceTimeline"
+const IncidentForm = lazy(() =>
+  import('@/components/operations/IncidentForm').then((m) => ({ default: m.IncidentForm })),
+)
+const IncidentClassificationBadge = lazy(() =>
+  import('@/components/operations/IncidentClassificationBadge').then((m) => ({ default: m.IncidentClassificationBadge })),
+)
+const EvidenceTimeline = lazy(() =>
+  import('@/components/operations/EvidenceTimeline').then((m) => ({ default: m.EvidenceTimeline })),
+)
+
+const LazyLoadingFallback = () => (
+  <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+    Loading...
+  </div>
+)
+
 import { Button } from "@/components/ui/button"
 import { useToast } from '@/components/ui/use-toast'
 import {
@@ -69,7 +81,7 @@ import { productService } from "@/services/productService"
 import { regionService } from "@/services/regionService"
 import type { Region } from "@/types/customer"
 import { Toaster } from '@/components/ui/toaster'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCustomerSelection } from '@/contexts/CustomerSelectionContext'
 
 interface IncidentReportPageProps {
@@ -84,7 +96,24 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
   const customerId = propCustomerId ?? (selectedCustomerId != null ? String(selectedCustomerId) : undefined)
   const siteId = propSiteId ?? selectedSiteId
   const { toast } = useToast()
-  const [open, setOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  // Keep dashboards "seamless" by auto-opening the dialog without showing
+  // the incident list/table underneath when ?open=new is present.
+  // Use `location.search` for stable initial value during navigation.
+  const initialAutoOpen = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('open') === 'new'
+  const shouldAutoOpenNewIncident = useMemo(() => {
+    if (initialAutoOpen) return true
+    const params = new URLSearchParams(location.search)
+    return params.get('open') === 'new'
+  }, [initialAutoOpen, location.search])
+
+  const isAutoOpenRef = useRef(shouldAutoOpenNewIncident)
+  const isAutoOpen = isAutoOpenRef.current
+
+  const [open, setOpen] = useState(shouldAutoOpenNewIncident)
   const [editingIncident, setEditingIncident] = useState<Incident | null>(null)
   const [deletingIncident, setDeletingIncident] = useState<Incident | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -102,8 +131,24 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
   const [regionFilter, setRegionFilter] = useState<string>('all')
   const [regions, setRegions] = useState<Region[]>([])
   const [isLoadingRegions, setIsLoadingRegions] = useState(false)
-  const [searchParams] = useSearchParams()
   const itemsPerPage = 10
+
+  const didNavigateBackRef = useRef(false)
+
+  const handleCloseDialog = useCallback(() => {
+    setOpen(false)
+    setEditingIncident(null)
+
+    if (!isAutoOpenRef.current) return
+    if (didNavigateBackRef.current) return
+
+    didNavigateBackRef.current = true
+    navigate(-1)
+  }, [navigate])
+
+  // Intentionally do not mutate the URL (no query-param cleanup).
+  // Mutating `?open=new` can cause a remount + visible blink and may trigger
+  // redirect-loop detection in your navigation tracker.
 
   const formatDateInput = (date: Date) => {
     const year = date.getFullYear()
@@ -218,6 +263,8 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
     }
   }, [searchParams])
 
+  // Note: dialog auto-open is handled via `shouldAutoOpenNewIncident` initializer.
+
   useEffect(() => {
     let isMounted = true
 
@@ -271,7 +318,8 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
       ...(regionFilter !== 'all' && { regionId: regionFilter }),
       ...(isCustomerView && customerId && { customerId }),
       ...(siteId && { siteId })
-    })
+    }),
+    enabled: !isAutoOpenRef.current
   })
 
   // Create/Update incident mutation using the API service
@@ -289,8 +337,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
         title: 'Success',
         description: editingIncident ? 'Incident updated successfully' : 'Incident created successfully',
       })
-      setOpen(false)
-      setEditingIncident(null)
+      handleCloseDialog()
     },
     onError: (error) => {
       console.error('Error saving incident:', error)
@@ -581,7 +628,8 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
   }, [editingIncident, toast])
 
   // Loading state
-  if (isLoading) {
+  // If we were navigated here with ?open=new, avoid showing the loading screen/blink.
+  if (isLoading && !isAutoOpenRef.current) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -593,7 +641,8 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
   }
 
   // Error state with retry option
-  if (error) {
+  // If we were navigated here with ?open=new, still show the "new incident" form dialog.
+  if (error && !isAutoOpenRef.current) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-sm">
@@ -630,7 +679,8 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
   return (
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-gradient-to-br from-blue-50 via-slate-50 to-blue-50">
       <Toaster />
-      <div className="w-full max-w-full mx-auto py-3 sm:py-4 md:py-6 lg:py-8 px-3 sm:px-4 md:px-6 lg:px-8">
+      {!isAutoOpenRef.current && (
+        <div className="w-full max-w-full mx-auto py-3 sm:py-4 md:py-6 lg:py-8 px-3 sm:px-4 md:px-6 lg:px-8">
         {/* Header Section */}
         <div className="flex flex-col space-y-3 sm:space-y-4 md:space-y-6 lg:space-y-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 min-w-0">
@@ -1082,16 +1132,14 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
             </Pagination>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* Dialogs */}
       <Dialog 
         open={open} 
         onOpenChange={(isOpen) => {
-          setOpen(isOpen)
-          if (!isOpen) {
-            setEditingIncident(null)
-          }
+          if (!isOpen) handleCloseDialog()
         }}
       >
         <DialogContent className="w-[calc(100%-16px)] sm:w-[calc(100%-32px)] max-w-[95vw] sm:max-w-[92vw] md:max-w-[90vw] lg:max-w-[90vw] xl:max-w-[85vw] 2xl:max-w-[80vw] h-[90vh] p-0 bg-white">
@@ -1104,19 +1152,20 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto bg-gray-50">
-            <IncidentForm
-              initialData={editingIncident}
-              onSubmit={handleSubmit}
-              onCancel={() => {
-                setOpen(false)
-                setEditingIncident(null)
-              }}
-              onScanBarcode={() => setScanningBarcode(true)}
-              onBarcodeScanned={handleBarcodeScanned}
-              isLoading={mutation.isPending}
-              customerId={customerId}
-              siteId={siteId}
-            />
+            <Suspense fallback={<LazyLoadingFallback />}>
+              <IncidentForm
+                initialData={editingIncident}
+                onSubmit={handleSubmit}
+                onCancel={() => {
+                  handleCloseDialog()
+                }}
+                onScanBarcode={() => setScanningBarcode(true)}
+                onBarcodeScanned={handleBarcodeScanned}
+                isLoading={mutation.isPending}
+                customerId={customerId}
+                siteId={siteId}
+              />
+            </Suspense>
           </div>
         </DialogContent>
       </Dialog>
@@ -1383,14 +1432,18 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                   {/* AI Classification */}
                   {viewingIncident.id && (
                     <div className="mb-4">
-                      <IncidentClassificationBadge incidentId={viewingIncident.id} />
+                      <Suspense fallback={<LazyLoadingFallback />}>
+                        <IncidentClassificationBadge incidentId={viewingIncident.id} />
+                      </Suspense>
                     </div>
                   )}
 
                   {/* Evidence Chain */}
                   {viewingIncident.id && (
                     <div className="mb-4">
-                      <EvidenceTimeline incidentId={viewingIncident.id} />
+                      <Suspense fallback={<LazyLoadingFallback />}>
+                        <EvidenceTimeline incidentId={viewingIncident.id} />
+                      </Suspense>
                     </div>
                   )}
                 </div>
