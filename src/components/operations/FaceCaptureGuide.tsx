@@ -87,8 +87,8 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 			// Radii scale with preview size and are clamped so the oval
 			// doesn't overflow the canvas on small screens.
 			const base = Math.min(w, h)
-			const rx = Math.min(w * 0.38, base * 0.42, 150)
-			const ry = Math.min(h * 0.22, base * 0.30, 120)
+			const rx = Math.min(w * 0.44, base * 0.52, 190)
+			const ry = Math.min(h * 0.32, base * 0.42, 150)
 
 			// Ensure it never overflows the canvas.
 			const safeRx = Math.min(rx, w * 0.49)
@@ -243,7 +243,7 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="relative mx-auto w-full max-w-sm sm:max-w-lg h-44 sm:h-56">
+			<div className="relative mx-auto w-full max-w-sm sm:max-w-lg h-48 sm:h-60">
 				<video
 					ref={videoRef}
 					className="w-full h-full rounded-md bg-black object-cover"
