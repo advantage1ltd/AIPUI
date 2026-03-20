@@ -239,6 +239,18 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
+  type CameraFacingMode = 'user' | 'environment'
+  const [cameraFacingMode, setCameraFacingMode] = useState<CameraFacingMode>('user')
+
+  // Default camera when entering capture mode; user can toggle afterwards.
+  useEffect(() => {
+    setCameraFacingMode(isSearchCaptureMode ? 'user' : 'environment')
+  }, [isSearchCaptureMode])
+
+  const handleToggleCameraFacingMode = () => {
+    setCameraFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
+  }
+
   const searchOffender = async (name: string, dob?: Date, marks?: string) => {
     setIsSearchingOffender(true);
     setOffenderSearchError(null);
@@ -645,11 +657,15 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
     }
   }
 
-  const stopCamera = () => {
+  const stopCameraStream = () => {
     if (cameraStreamRef.current) {
       cameraStreamRef.current.getTracks().forEach(track => track.stop())
       cameraStreamRef.current = null
     }
+  }
+
+  const stopCamera = () => {
+    stopCameraStream()
     setIsCameraActive(false)
   }
 
@@ -880,10 +896,12 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
       setIsProcessingVerificationImage(true)
 
       try {
+        // Restart the stream if camera constraints (e.g. facingMode) change.
+        stopCameraStream()
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            // Use front camera for scan-to-search (e.g. testing with own face), back for verification
-            facingMode: isSearchCaptureMode ? 'user' : 'environment',
+            facingMode: cameraFacingMode,
             width: { ideal: 1280, min: 640 },
             height: { ideal: 720, min: 480 }
           },
@@ -911,7 +929,7 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
     }
 
     attachCameraStream()
-  }, [isCameraActive, isSearchCaptureMode])
+  }, [isCameraActive, isSearchCaptureMode, cameraFacingMode])
 
   useEffect(() => {
     return () => {
@@ -1744,6 +1762,8 @@ const IncidentForm: React.FC<IncidentFormProps> = memo(({ initialData, onSubmit,
                                   }}
                                   onCancel={() => { stopCamera(); setIsSearchCaptureMode(false) }}
                                   isSearching={isImageSearching}
+                                  facingMode={cameraFacingMode}
+                                  onToggleFacingMode={handleToggleCameraFacingMode}
                                 />
                                 <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
                               </div>

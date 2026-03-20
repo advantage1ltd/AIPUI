@@ -6,6 +6,8 @@ interface FaceCaptureGuideProps {
 	onCapture: (dataUrl: string) => void
 	onCancel: () => void
 	isSearching?: boolean
+	facingMode: 'user' | 'environment'
+	onToggleFacingMode?: () => void
 }
 
 const POLL_INTERVAL_MS = 800
@@ -22,6 +24,8 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 	onCapture,
 	onCancel,
 	isSearching = false,
+	facingMode,
+	onToggleFacingMode,
 }) => {
 	const overlayRef = useRef<HTMLCanvasElement | null>(null)
 	const captureCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -76,17 +80,15 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 			ctx.clearRect(0, 0, w, h)
 
 			const cx = w / 2
-			// Nudge oval upward so it better matches the typical face position
-			// within an object-cover/camera preview on mobile.
-			const cy = h * 0.48
+			// Put the oval near the top so it frames a face in the camera
+			// preview (object-cover tends to push the face upward).
+			const cy = h * 0.33
 
-			// Oval radii scale with the canvas, and clamp to keep the oval
-			// fully inside the preview. (Previously we used a -90deg rotation,
-			// which effectively swapped radii and made the oval look too wide
-			// on tall mobile layouts.)
+			// Radii scale with preview size and are clamped so the oval
+			// doesn't overflow the canvas on small screens.
 			const base = Math.min(w, h)
-			const rx = Math.min(w * 0.32, base * 0.34, 140)
-			const ry = Math.min(h * 0.28, base * 0.26, 120)
+			const rx = Math.min(w * 0.38, base * 0.42, 150)
+			const ry = Math.min(h * 0.22, base * 0.30, 120)
 
 			// Ensure it never overflows the canvas.
 			const safeRx = Math.min(rx, w * 0.49)
@@ -95,7 +97,7 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 			const rotation = 0
 
 			ctx.strokeStyle = '#22c55e'
-			ctx.lineWidth = Math.max(2, Math.min(5, base * 0.012))
+			ctx.lineWidth = Math.max(2.5, Math.min(5, base * 0.012))
 			ctx.beginPath()
 			ctx.ellipse(cx, cy, safeRx, safeRy, rotation, 0, 2 * Math.PI)
 			ctx.stroke()
@@ -106,9 +108,15 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 			ctx.textAlign = 'center'
 
 			const text = 'Position face in oval, then tap Capture & search'
-			const defaultTextY = cy + safeRy + fontSize + 12
-			// Keep text visible even on very short preview heights.
-			const textY = defaultTextY > h - 8 ? cy - safeRy - fontSize - 12 : defaultTextY
+			// Prefer placing the helper text below the oval, but if there's
+			// not enough space (small/short previews), place it above.
+			const padding = 8
+			const desiredBelow = cy + safeRy + fontSize + 12
+			const desiredAbove = cy - safeRy - 10
+			const textY =
+				desiredBelow <= h - padding
+					? desiredBelow
+					: Math.max(fontSize + padding, desiredAbove)
 			ctx.fillText(text, cx, textY)
 		}
 
@@ -253,6 +261,19 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 					</div>
 				)}
 			</div>
+			{onToggleFacingMode && (
+				<div className="flex justify-center">
+					<button
+						type="button"
+						onClick={onToggleFacingMode}
+						disabled={!isVideoReady}
+						aria-label="Toggle front and back camera"
+						className="inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+					>
+						{facingMode === 'user' ? 'Use back camera' : 'Use front camera'}
+					</button>
+				</div>
+			)}
 			<div className="flex flex-wrap gap-2 justify-center">
 				<button
 					type="button"
