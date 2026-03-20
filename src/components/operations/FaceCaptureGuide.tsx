@@ -76,22 +76,40 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 			ctx.clearRect(0, 0, w, h)
 
 			const cx = w / 2
-			const cy = h / 2
-			// Oval: wider than tall for face framing (rotate 90° CW from vertical)
-			const rx = Math.min(w * 0.3, 120)
-			const ry = Math.min(h * 0.4, 180)
-			const rotation = -Math.PI / 2
+			// Nudge oval upward so it better matches the typical face position
+			// within an object-cover/camera preview on mobile.
+			const cy = h * 0.48
+
+			// Oval radii scale with the canvas, and clamp to keep the oval
+			// fully inside the preview. (Previously we used a -90deg rotation,
+			// which effectively swapped radii and made the oval look too wide
+			// on tall mobile layouts.)
+			const base = Math.min(w, h)
+			const rx = Math.min(w * 0.32, base * 0.34, 140)
+			const ry = Math.min(h * 0.28, base * 0.26, 120)
+
+			// Ensure it never overflows the canvas.
+			const safeRx = Math.min(rx, w * 0.49)
+			const safeRy = Math.min(ry, h * 0.49)
+
+			const rotation = 0
 
 			ctx.strokeStyle = '#22c55e'
-			ctx.lineWidth = 4
+			ctx.lineWidth = Math.max(2, Math.min(5, base * 0.012))
 			ctx.beginPath()
-			ctx.ellipse(cx, cy, rx, ry, rotation, 0, 2 * Math.PI)
+			ctx.ellipse(cx, cy, safeRx, safeRy, rotation, 0, 2 * Math.PI)
 			ctx.stroke()
 
-			ctx.font = '14px system-ui, sans-serif'
+			const fontSize = Math.max(12, Math.min(16, base * 0.05))
+			ctx.font = `${fontSize}px system-ui, sans-serif`
 			ctx.fillStyle = '#22c55e'
 			ctx.textAlign = 'center'
-			ctx.fillText('Position face in oval, then tap Capture & search', cx, cy + ry + 24)
+
+			const text = 'Position face in oval, then tap Capture & search'
+			const defaultTextY = cy + safeRy + fontSize + 12
+			// Keep text visible even on very short preview heights.
+			const textY = defaultTextY > h - 8 ? cy - safeRy - fontSize - 12 : defaultTextY
+			ctx.fillText(text, cx, textY)
 		}
 
 		const syncOverlaySize = () => {
