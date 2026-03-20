@@ -242,11 +242,11 @@ export const FaceCaptureGuide: React.FC<FaceCaptureGuideProps> = ({
 	}, [videoRef, isVideoReady])
 
 	return (
-		<div className="space-y-3">
-			<div className="relative mx-auto w-full max-w-sm sm:max-w-lg">
+		<div className="flex flex-col gap-2">
+			<div className="relative mx-auto w-full max-w-sm sm:max-w-lg h-44 sm:h-56">
 				<video
 					ref={videoRef}
-					className="w-full rounded-md bg-black object-cover"
+					className="w-full h-full rounded-md bg-black object-cover"
 					playsInline
 					muted
 				/>
