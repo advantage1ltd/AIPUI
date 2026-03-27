@@ -677,7 +677,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
   }
 
   return (
-    <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-gradient-to-br from-blue-50 via-slate-50 to-blue-50">
+    <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-gradient-to-br from-blue-50 via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Toaster />
       {!isAutoOpenRef.current && (
         <div className="w-full max-w-full mx-auto py-3 sm:py-4 md:py-6 lg:py-8 px-3 sm:px-4 md:px-6 lg:px-8">
@@ -689,8 +689,8 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">Incident Reports</h1>
-                <p className="text-xs sm:text-sm text-gray-500">Track and manage security incidents across all sites</p>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">Incident Reports</h1>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Track and manage security incidents across all sites</p>
               </div>
             </div>
             <Button
@@ -739,9 +739,9 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
         </div>
 
         {/* Table Section */}
-        <div className="mt-3 sm:mt-4 md:mt-6 lg:mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-w-0">
+        <div className="mt-3 sm:mt-4 md:mt-6 lg:mt-8 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden min-w-0">
           {/* Search Bar */}
-          <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 space-y-4 min-w-0">
+          <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-slate-700 space-y-4 min-w-0">
             <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -835,29 +835,29 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
             </div>
 
             <div className="relative w-full max-w-xl min-w-0">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
               <Input
                 placeholder="Search incidents..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 border-gray-300 text-sm h-9"
+                className="pl-9 border-gray-300 dark:border-slate-600 text-sm h-9 dark:bg-slate-950 dark:text-gray-100 dark:placeholder:text-gray-500"
               />
             </div>
           </div>
 
           {!hasIncidents && (
-            <div className="p-6 sm:p-8 text-center border-b border-gray-200">
+            <div className="p-6 sm:p-8 text-center border-b border-gray-200 dark:border-slate-700">
               <div className="mb-4">
-                <FileText className="h-10 w-10 text-gray-300 mx-auto" />
+                <FileText className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto" />
               </div>
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 {isClientFilterActive
                   ? 'No Incidents Match Your Filters'
                   : isSearchActive
                     ? 'No Incidents Match Your Search'
                     : 'No Incidents Found'}
               </h2>
-              <p className="text-sm sm:text-base text-gray-600 mb-4">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">
                 {isClientFilterActive
                   ? 'Try adjusting your filters to see more incident reports.'
                   : isSearchActive
@@ -898,12 +898,12 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
           {hasIncidents && (
             <div className="block md:hidden p-3 space-y-3">
               {paginatedIncidents.map((incident) => (
-                <div key={incident.id} className="rounded-lg border bg-white shadow-sm p-4 space-y-3">
+                <div key={incident.id} className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-sm p-4 space-y-3">
                   {/* Header with customer and amount */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{incident.customerName || 'N/A'}</div>
-                      <div className="text-xs text-gray-500 mt-0.5 truncate">{incident.siteName}</div>
+                      <div className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{incident.customerName || 'N/A'}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{incident.siteName}</div>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="font-semibold text-sm text-green-600">
@@ -926,23 +926,23 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t">
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-gray-200 dark:border-slate-700">
                     <div>
-                      <span className="text-gray-500 block mb-0.5">Officer</span>
-                      <div className="font-medium truncate">{incident.officerName || 'N/A'}</div>
+                      <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Officer</span>
+                      <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{incident.officerName || 'N/A'}</div>
                     </div>
                     <div>
-                      <span className="text-gray-500 block mb-0.5">Date</span>
-                      <div className="font-medium">{incident.date ? new Date(incident.date).toLocaleDateString() : 'N/A'}</div>
+                      <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Date</span>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{incident.date ? new Date(incident.date).toLocaleDateString() : 'N/A'}</div>
                     </div>
                     <div className="col-span-2">
-                      <span className="text-gray-500 block mb-0.5">Incident Type</span>
-                      <div className="font-medium">{incident.incidentType}</div>
+                      <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Incident Type</span>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{incident.incidentType}</div>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2 border-t">
+                  <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-slate-700">
                     <Button
                       variant="outline"
                       size="sm"
@@ -981,26 +981,26 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
               <div className="min-w-[480px]">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-medium text-sm text-gray-900 py-3 whitespace-nowrap">Company Name</TableHead>
-                      <TableHead className="font-medium text-sm text-gray-900 py-3 whitespace-nowrap">Store Name</TableHead>
-                      <TableHead className="font-medium text-sm text-gray-900 py-3 whitespace-nowrap">Staff Member Name</TableHead>
-                      <TableHead className="font-medium text-sm text-gray-900 py-3 whitespace-nowrap hidden lg:table-cell">
+                    <TableRow className="bg-gray-50 dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800">
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap">Company Name</TableHead>
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap">Store Name</TableHead>
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap">Staff Member Name</TableHead>
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap hidden lg:table-cell">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                           <span>Incident Date</span>
                         </div>
                       </TableHead>
-                      <TableHead className="font-medium text-sm text-gray-900 py-3 whitespace-nowrap">Total Amount</TableHead>
-                      <TableHead className="font-medium text-sm text-gray-900 py-3 whitespace-nowrap hidden lg:table-cell">Incident Type</TableHead>
-                      <TableHead className="font-medium text-sm text-gray-900 py-3 text-right whitespace-nowrap">Actions</TableHead>
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap">Total Amount</TableHead>
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap hidden lg:table-cell">Incident Type</TableHead>
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 text-right whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedIncidents.map((incident) => (
                       <TableRow 
                         key={incident.id}
-                        className="hover:bg-gray-50 transition-colors text-sm"
+                        className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-sm text-gray-900 dark:text-gray-100"
                       >
                         <TableCell className="py-3 font-medium whitespace-nowrap">
                           {incident.customerName || 'N/A'}
@@ -1035,7 +1035,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                               variant="outline"
                               size="sm"
                               onClick={() => handleView(incident)}
-                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                             >
                               <Eye className="w-4 h-4" />
                               <span className="sr-only">View</span>
@@ -1044,7 +1044,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                               variant="outline"
                               size="sm"
                               onClick={() => handleEdit(incident)}
-                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                             >
                               <Edit2 className="w-4 h-4" />
                               <span className="sr-only">Edit</span>
@@ -1053,7 +1053,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                               variant="outline"
                               size="sm"
                               onClick={() => handleDelete(incident)}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
                             >
                               <Trash2 className="w-4 h-4" />
                               <span className="sr-only">Delete</span>
@@ -1071,7 +1071,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
 
         {/* Pagination */}
         {hasIncidents && totalPages > 1 && (
-          <div className="flex justify-center py-3 sm:py-4 border-t border-gray-200 bg-white">
+          <div className="flex justify-center py-3 sm:py-4 border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
             <Pagination>
               <PaginationContent className="flex flex-wrap items-center gap-1 sm:gap-0">
                 <PaginationItem>
@@ -1114,7 +1114,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                 
                 {/* Mobile Pagination Counter */}
                 <PaginationItem className="sm:hidden">
-                  <span className="h-8 px-3 flex items-center justify-center text-xs font-medium text-gray-600">
+                  <span className="h-8 px-3 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
                     {currentPage} / {totalPages}
                   </span>
                 </PaginationItem>
