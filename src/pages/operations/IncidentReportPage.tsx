@@ -1142,16 +1142,16 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
           if (!isOpen) handleCloseDialog()
         }}
       >
-        <DialogContent className="w-[calc(100%-16px)] sm:w-[calc(100%-32px)] max-w-[95vw] sm:max-w-[92vw] md:max-w-[90vw] lg:max-w-[90vw] xl:max-w-[85vw] 2xl:max-w-[80vw] h-[90vh] p-0 bg-white">
-          <DialogHeader className="px-4 py-3 border-b bg-white">
+        <DialogContent className="w-[calc(100%-16px)] sm:w-[calc(100%-32px)] max-w-[95vw] sm:max-w-[92vw] md:max-w-[90vw] lg:max-w-[90vw] xl:max-w-[85vw] 2xl:max-w-[80vw] h-[90vh] p-0 bg-background">
+          <DialogHeader className="px-4 py-3 border-b bg-background">
             <DialogTitle className="text-xl font-bold">
               {editingIncident ? 'Edit Incident Report' : 'Incident Report'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">
+            <DialogDescription className="text-sm text-muted-foreground">
               {editingIncident ? 'Update the incident details below' : 'Fill in the incident details below'}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="flex-1 overflow-y-auto bg-muted/30">
             <Suspense fallback={<LazyLoadingFallback />}>
               <IncidentForm
                 initialData={editingIncident}
@@ -1175,46 +1175,46 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
         onOpenChange={(isOpen) => !isOpen && setViewingIncident(null)}
       >
         <DialogContent className="w-[calc(100%-16px)] sm:w-[calc(100%-32px)] max-w-[95vw] sm:max-w-[92vw] md:max-w-[90vw] lg:max-w-[90vw] xl:max-w-[85vw] 2xl:max-w-[80vw] h-[90vh] p-0">
-          <DialogHeader className="px-4 py-3 border-b">
+            <DialogHeader className="px-4 py-3 border-b bg-background">
             <DialogTitle className="text-xl font-bold">View Incident Details</DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">
+            <DialogDescription className="text-sm text-muted-foreground">
               Incident ID: {viewingIncident?.id}
             </DialogDescription>
           </DialogHeader>
           {viewingIncident && (
             <div className="flex-1 overflow-y-auto">
-              <div className="bg-[#F8F3F1]">
+              <div className="bg-muted/30">
                 <div className="w-full max-w-[98%] mx-auto px-4 py-4">
                   {/* Basic Information */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-6 w-6 text-blue-600">📋</div>
-                      <h2 className="text-lg font-medium text-gray-900">Basic Information</h2>
+                      <h2 className="text-lg font-medium text-card-foreground">Basic Information</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Company Name</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.customerName || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Company Name</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.customerName || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Store Name</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.siteName || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Store Name</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.siteName || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Staff Member Name</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.officerName || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Staff Member Name</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.officerName || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Assigned To</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.assignedTo || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Assigned To</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.assignedTo || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Status</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.status || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Status</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.status || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Date</label>
-                        <p className="mt-1 text-sm text-gray-900">
+                        <label className="text-sm font-medium text-muted-foreground">Date</label>
+                        <p className="mt-1 text-sm text-card-foreground">
                           {viewingIncident.date ? new Date(viewingIncident.date).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
@@ -1222,29 +1222,29 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                   </div>
 
                   {/* Incident Details */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-6 w-6 text-blue-600">🕒</div>
-                      <h2 className="text-lg font-medium text-gray-900">Incident Details</h2>
+                      <h2 className="text-lg font-medium text-card-foreground">Incident Details</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Date of Incident</label>
-                        <p className="mt-1 text-sm text-gray-900">
+                        <label className="text-sm font-medium text-muted-foreground">Date of Incident</label>
+                        <p className="mt-1 text-sm text-card-foreground">
                           {viewingIncident.date ? new Date(viewingIncident.date).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Priority</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.priority || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Priority</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.priority || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Incident Type</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.incidentType || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Incident Type</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.incidentType || 'N/A'}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Total Value Recovered</label>
-                        <p className="mt-1 text-sm text-gray-900">
+                        <label className="text-sm font-medium text-muted-foreground">Total Value Recovered</label>
+                        <p className="mt-1 text-sm text-card-foreground">
                           £{typeof viewingIncident.totalValueRecovered === 'number' && !isNaN(viewingIncident.totalValueRecovered)
                             ? viewingIncident.totalValueRecovered.toFixed(2)
                             : '0.00'}
@@ -1254,48 +1254,48 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                   </div>
 
                   {/* Description */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-6 w-6 text-blue-600">📝</div>
-                      <h2 className="text-lg font-medium text-gray-900">Description</h2>
+                      <h2 className="text-lg font-medium text-card-foreground">Description</h2>
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Incident Details</label>
-                        <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{viewingIncident.description || 'N/A'}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Incident Details</label>
+                        <p className="mt-1 text-sm text-card-foreground whitespace-pre-wrap">{viewingIncident.description || 'N/A'}</p>
                       </div>
                       {viewingIncident.storeComments && (
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Store Comments</label>
-                          <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{viewingIncident.storeComments}</p>
+                          <label className="text-sm font-medium text-muted-foreground">Store Comments</label>
+                          <p className="mt-1 text-sm text-card-foreground whitespace-pre-wrap">{viewingIncident.storeComments}</p>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Police Involvement */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-6 w-6 text-blue-600">👮</div>
-                      <h2 className="text-lg font-medium text-gray-900">Police Involvement</h2>
+                      <h2 className="text-lg font-medium text-card-foreground">Police Involvement</h2>
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Was Police Involved?</label>
-                        <p className="mt-1 text-sm text-gray-900">{viewingIncident.policeInvolvement ? "Yes" : "No"}</p>
+                        <label className="text-sm font-medium text-muted-foreground">Was Police Involved?</label>
+                        <p className="mt-1 text-sm text-card-foreground">{viewingIncident.policeInvolvement ? "Yes" : "No"}</p>
                       </div>
                       {viewingIncident.policeInvolvement && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {viewingIncident.urnNumber && (
                             <div>
-                              <label className="text-sm font-medium text-gray-500">URN Number</label>
-                              <p className="mt-1 text-sm text-gray-900">{viewingIncident.urnNumber}</p>
+                              <label className="text-sm font-medium text-muted-foreground">URN Number</label>
+                              <p className="mt-1 text-sm text-card-foreground">{viewingIncident.urnNumber}</p>
                             </div>
                           )}
                           {viewingIncident.crimeRefNumber && (
                             <div>
-                              <label className="text-sm font-medium text-gray-500">Crime Reference Number</label>
-                              <p className="mt-1 text-sm text-gray-900">{viewingIncident.crimeRefNumber}</p>
+                              <label className="text-sm font-medium text-muted-foreground">Crime Reference Number</label>
+                              <p className="mt-1 text-sm text-card-foreground">{viewingIncident.crimeRefNumber}</p>
                             </div>
                           )}
                         </div>
@@ -1305,24 +1305,24 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
 
                   {/* Offender Details */}
                   {viewingIncident.offenderName && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                    <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="h-6 w-6 text-blue-600">👤</div>
-                        <h2 className="text-lg font-medium text-gray-900">Offender Details</h2>
+                        <h2 className="text-lg font-medium text-card-foreground">Offender Details</h2>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Name</label>
-                          <p className="mt-1 text-sm text-gray-900">{viewingIncident.offenderName}</p>
+                          <label className="text-sm font-medium text-muted-foreground">Name</label>
+                          <p className="mt-1 text-sm text-card-foreground">{viewingIncident.offenderName}</p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Sex</label>
-                          <p className="mt-1 text-sm text-gray-900">{viewingIncident.offenderSex || 'N/A'}</p>
+                          <label className="text-sm font-medium text-muted-foreground">Sex</label>
+                          <p className="mt-1 text-sm text-card-foreground">{viewingIncident.offenderSex || 'N/A'}</p>
                         </div>
                         {viewingIncident.offenderDOB && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500">Date of Birth</label>
-                            <p className="mt-1 text-sm text-gray-900">
+                            <label className="text-sm font-medium text-muted-foreground">Date of Birth</label>
+                            <p className="mt-1 text-sm text-card-foreground">
                               {new Date(viewingIncident.offenderDOB).toLocaleDateString()}
                             </p>
                           </div>
@@ -1330,16 +1330,16 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                         {viewingIncident.offenderAddress && (
                           <>
                             <div>
-                              <label className="text-sm font-medium text-gray-500">Address</label>
-                              <p className="mt-1 text-sm text-gray-900">{viewingIncident.offenderAddress.numberAndStreet || 'N/A'}</p>
+                              <label className="text-sm font-medium text-muted-foreground">Address</label>
+                              <p className="mt-1 text-sm text-card-foreground">{viewingIncident.offenderAddress.numberAndStreet || 'N/A'}</p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-500">Town</label>
-                              <p className="mt-1 text-sm text-gray-900">{viewingIncident.offenderAddress.town || 'N/A'}</p>
+                              <label className="text-sm font-medium text-muted-foreground">Town</label>
+                              <p className="mt-1 text-sm text-card-foreground">{viewingIncident.offenderAddress.town || 'N/A'}</p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-500">Post Code</label>
-                              <p className="mt-1 text-sm text-gray-900">{viewingIncident.offenderAddress.postCode || 'N/A'}</p>
+                              <label className="text-sm font-medium text-muted-foreground">Post Code</label>
+                              <p className="mt-1 text-sm text-card-foreground">{viewingIncident.offenderAddress.postCode || 'N/A'}</p>
                             </div>
                           </>
                         )}
@@ -1349,16 +1349,16 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
 
                   {/* Incident Categories */}
                   {viewingIncident.incidentInvolved && viewingIncident.incidentInvolved.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                    <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="h-6 w-6 text-blue-600">🏷️</div>
-                        <h2 className="text-lg font-medium text-gray-900">Incident Categories</h2>
+                        <h2 className="text-lg font-medium text-card-foreground">Incident Categories</h2>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {viewingIncident.incidentInvolved.map((type, index) => (
                           <div key={index} className="flex items-center gap-2">
                             <div className="h-2 w-2 rounded-full bg-blue-600"></div>
-                            <p className="text-sm text-gray-900">{type}</p>
+                            <p className="text-sm text-card-foreground">{type}</p>
                           </div>
                         ))}
                       </div>
@@ -1367,21 +1367,21 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
 
                   {/* Stolen Items */}
                   {viewingIncident.stolenItems && viewingIncident.stolenItems.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div className="bg-card rounded-lg shadow-sm border border-border p-4">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="h-6 w-6 text-blue-600">💰</div>
-                        <h2 className="text-lg font-medium text-gray-900">Stolen Items</h2>
+                        <h2 className="text-lg font-medium text-card-foreground">Stolen Items</h2>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full">
                           <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2 text-sm font-medium text-gray-500">Category</th>
-                              <th className="text-left py-2 text-sm font-medium text-gray-500">Product Name</th>
-                              <th className="text-left py-2 text-sm font-medium text-gray-500">Description</th>
-                              <th className="text-right py-2 text-sm font-medium text-gray-500">Cost</th>
-                              <th className="text-right py-2 text-sm font-medium text-gray-500">Qty</th>
-                              <th className="text-right py-2 text-sm font-medium text-gray-500">Total</th>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 text-sm font-medium text-muted-foreground">Category</th>
+                              <th className="text-left py-2 text-sm font-medium text-muted-foreground">Product Name</th>
+                              <th className="text-left py-2 text-sm font-medium text-muted-foreground">Description</th>
+                              <th className="text-right py-2 text-sm font-medium text-muted-foreground">Cost</th>
+                              <th className="text-right py-2 text-sm font-medium text-muted-foreground">Qty</th>
+                              <th className="text-right py-2 text-sm font-medium text-muted-foreground">Total</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1393,19 +1393,19 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                                 ? item.totalAmount
                                 : cost * quantity
                               return (
-                                <tr key={index} className="border-b">
-                                  <td className="py-2 text-sm text-gray-900">{item.category || 'N/A'}</td>
-                                  <td className="py-2 text-sm text-gray-900">{item.productName || 'N/A'}</td>
-                                  <td className="py-2 text-sm text-gray-900">{item.description || 'N/A'}</td>
-                                  <td className="py-2 text-sm text-gray-900 text-right">£{cost.toFixed(2)}</td>
-                                  <td className="py-2 text-sm text-gray-900 text-right">{quantity}</td>
-                                  <td className="py-2 text-sm text-gray-900 text-right">£{totalAmount.toFixed(2)}</td>
+                                <tr key={index} className="border-b border-border">
+                                  <td className="py-2 text-sm text-card-foreground">{item.category || 'N/A'}</td>
+                                  <td className="py-2 text-sm text-card-foreground">{item.productName || 'N/A'}</td>
+                                  <td className="py-2 text-sm text-card-foreground">{item.description || 'N/A'}</td>
+                                  <td className="py-2 text-sm text-card-foreground text-right">£{cost.toFixed(2)}</td>
+                                  <td className="py-2 text-sm text-card-foreground text-right">{quantity}</td>
+                                  <td className="py-2 text-sm text-card-foreground text-right">£{totalAmount.toFixed(2)}</td>
                                 </tr>
                               )
                             })}
-                            <tr className="bg-gray-50">
-                              <td colSpan={5} className="py-2 text-sm font-medium text-gray-900">Total Value</td>
-                              <td className="py-2 text-sm font-medium text-gray-900 text-right">
+                            <tr className="bg-muted/40">
+                              <td colSpan={5} className="py-2 text-sm font-medium text-card-foreground">Total Value</td>
+                              <td className="py-2 text-sm font-medium text-card-foreground text-right">
                                 £{Array.isArray(viewingIncident?.stolenItems)
                                     ? (() => {
                                         const total = viewingIncident.stolenItems.reduce(
@@ -1450,7 +1450,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
               </div>
 
               {/* Form Actions */}
-              <div className="sticky bottom-0 bg-white border-t px-4 py-3 flex justify-end gap-2">
+              <div className="sticky bottom-0 bg-background border-t px-4 py-3 flex justify-end gap-2">
                 <Button
                   variant="outline"
                   onClick={() => handleEdit(viewingIncident)}
