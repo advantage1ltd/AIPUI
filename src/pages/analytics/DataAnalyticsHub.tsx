@@ -29,6 +29,15 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import { analyticsService } from '@/services/analyticsService'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { AnalyticsHubData } from '@/types/analytics'
+import { Badge } from '@/components/ui/badge'
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@/components/ui/table'
 import { CrimeTrendExplorer } from './components/CrimeTrendExplorer'
 import { HotProductsDashboard } from './components/HotProductsDashboard'
 import { RepeatOffenderAnalysis } from './components/RepeatOffenderAnalysis'
@@ -211,29 +220,6 @@ const DataAnalyticsHub = () => {
 		})
 	}
 
-	if (error && !data) {
-		return (
-			<div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
-				<Card>
-					<CardHeader className="p-4 sm:p-6">
-						<CardTitle className="text-lg sm:text-xl">Data Analytics Hub</CardTitle>
-						<CardDescription className="text-xs sm:text-sm">Error loading analytics data</CardDescription>
-					</CardHeader>
-					<CardContent className="p-4 sm:p-6">
-						<div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
-							<AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-500" />
-							<p className="text-sm sm:text-base text-red-600 text-center">{error}</p>
-							<Button onClick={handleRefresh} className="text-sm">
-								<RefreshCw className="h-4 w-4 mr-2" />
-								Retry
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
-		)
-	}
-
 	const aiRiskSummary = useMemo(() => {
 		if (!data) return null
 
@@ -273,6 +259,68 @@ const DataAnalyticsHub = () => {
 			topStoreLevelLabel: topLabelMap[top.riskLevel] ?? top.riskLevel,
 		}
 	}, [data])
+
+	const recoveryInsights = useMemo(() => {
+		if (!data?.storeRecoveryComparisons?.length) return []
+
+		const comparisons = data.storeRecoveryComparisons
+		const networkAverage =
+			comparisons.reduce((sum, store) => sum + store.recoveryRate, 0) / comparisons.length
+		const bestStore = [...comparisons].sort((a, b) => b.recoveryRate - a.recoveryRate)[0]
+		const highestLossStore = [...comparisons].sort((a, b) => b.totalLostValue - a.totalLostValue)[0]
+		const bestRecoveredProduct = data.hotProducts.topRecoveredProducts[0]
+
+		const insights = []
+
+		if (bestStore) {
+			insights.push(
+				`${bestStore.storeName} recovered ${bestStore.recoveryRate.toFixed(1)}% of stolen value vs network average ${networkAverage.toFixed(1)}%`
+			)
+		}
+
+		if (highestLossStore) {
+			insights.push(
+				`${highestLossStore.storeName} has the highest unrecovered loss at £${highestLossStore.totalLostValue.toLocaleString('en-GB', {
+					minimumFractionDigits: 0,
+					maximumFractionDigits: 0,
+				})}`
+			)
+		}
+
+		if (bestRecoveredProduct) {
+			insights.push(
+				`${bestRecoveredProduct.productName} leads recovered value at £${bestRecoveredProduct.recoveredValue.toLocaleString('en-GB', {
+					minimumFractionDigits: 0,
+					maximumFractionDigits: 0,
+				})}`
+			)
+		}
+
+		return insights
+	}, [data])
+
+	if (error && !data) {
+		return (
+			<div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+				<Card>
+					<CardHeader className="p-4 sm:p-6">
+						<CardTitle className="text-lg sm:text-xl">Data Analytics Hub</CardTitle>
+						<CardDescription className="text-xs sm:text-sm">Error loading analytics data</CardDescription>
+					</CardHeader>
+					<CardContent className="p-4 sm:p-6">
+						<div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
+							<AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-500" />
+							<p className="text-sm sm:text-base text-red-600 text-center">{error}</p>
+							<Button onClick={handleRefresh} className="text-sm">
+								<RefreshCw className="h-4 w-4 mr-2" />
+								Retry
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		)
+	}
 
 	return (
 		<ErrorBoundary>
@@ -457,7 +505,7 @@ const DataAnalyticsHub = () => {
 
 							{data && (
 								<>
-									<div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full">
+									<div className="mt-4 grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 w-full">
 										<div className="text-center sm:text-left min-w-0">
 											<div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
 												Date Range
@@ -477,13 +525,43 @@ const DataAnalyticsHub = () => {
 										</div>
 										<div className="text-center sm:text-left min-w-0">
 											<div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
-												Value Lost
+												Total Stolen
 											</div>
-											<div className="text-xs sm:text-sm font-semibold text-rose-700 truncate">
-												£{data.hotProducts.totalValueLost.toLocaleString('en-GB', {
+											<div className="text-xs sm:text-sm font-semibold text-card-foreground truncate">
+												£{data.financialSummary.totalStolenValue.toLocaleString('en-GB', {
 													minimumFractionDigits: 0,
 													maximumFractionDigits: 0,
 												})}
+											</div>
+										</div>
+										<div className="text-center sm:text-left min-w-0">
+											<div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
+												Value Saved
+											</div>
+											<div className="text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 truncate">
+												£{data.financialSummary.totalRecoveredValue.toLocaleString('en-GB', {
+													minimumFractionDigits: 0,
+													maximumFractionDigits: 0,
+												})}
+											</div>
+										</div>
+										<div className="text-center sm:text-left min-w-0">
+											<div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
+												Value Lost
+											</div>
+											<div className="text-xs sm:text-sm font-semibold text-rose-700 dark:text-rose-300 truncate">
+												£{data.financialSummary.totalLostValue.toLocaleString('en-GB', {
+													minimumFractionDigits: 0,
+													maximumFractionDigits: 0,
+												})}
+											</div>
+										</div>
+										<div className="text-center sm:text-left min-w-0">
+											<div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
+												Recovery Rate
+											</div>
+											<div className="text-xs sm:text-sm font-semibold text-indigo-700 dark:text-indigo-300 truncate">
+												{data.financialSummary.recoveryRate.toFixed(1)}%
 											</div>
 										</div>
 										<div className="text-center sm:text-left min-w-0">
@@ -526,6 +604,19 @@ const DataAnalyticsHub = () => {
 											</div>
 										</div>
 									)}
+
+									{recoveryInsights.length > 0 && (
+										<div className="mt-3 grid gap-2">
+											{recoveryInsights.map((insight) => (
+												<div
+													key={insight}
+													className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs sm:text-sm text-foreground"
+												>
+													{insight}
+												</div>
+											))}
+										</div>
+									)}
 								</>
 							)}
 						</div>
@@ -563,7 +654,7 @@ const DataAnalyticsHub = () => {
 						<CardContent className="p-4 sm:p-6 pt-0 overflow-x-hidden">
 							<Tabs defaultValue="crime-trends" className="w-full">
 								<div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-									<TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 sm:gap-0 mb-4 p-1 min-w-max sm:min-w-0 rounded-xl bg-muted border border-border">
+									<TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 sm:gap-0 mb-4 p-1 min-w-max sm:min-w-0 rounded-xl bg-muted border border-border">
 										<TabsTrigger
 											value="crime-trends"
 											className="text-[11px] sm:text-sm py-2 whitespace-nowrap text-muted-foreground data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-indigo-500/40 hover:bg-accent hover:text-accent-foreground"
@@ -581,6 +672,12 @@ const DataAnalyticsHub = () => {
 											className="text-[11px] sm:text-sm py-2 whitespace-nowrap text-muted-foreground data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-indigo-500/40 hover:bg-accent hover:text-accent-foreground"
 										>
 											Hot Products
+										</TabsTrigger>
+										<TabsTrigger
+											value="recovery-performance"
+											className="text-[11px] sm:text-sm py-2 whitespace-nowrap text-muted-foreground data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-indigo-500/40 hover:bg-accent hover:text-accent-foreground"
+										>
+											Recovery
 										</TabsTrigger>
 										<TabsTrigger
 											value="repeat-offenders"
@@ -616,6 +713,53 @@ const DataAnalyticsHub = () => {
 									<ErrorBoundary>
 										<HotProductsDashboard data={data.hotProducts} loading={loading} />
 									</ErrorBoundary>
+								</TabsContent>
+
+								<TabsContent value="recovery-performance" className="mt-3 sm:mt-4 overflow-x-hidden">
+									<Card className="border-border">
+										<CardHeader className="p-4 sm:p-6 pb-3">
+											<CardTitle className="text-base sm:text-lg">Saved vs Lost by Store</CardTitle>
+											<CardDescription>
+												Compare recovered value, unrecovered loss, and recovery efficiency across the selected stores.
+											</CardDescription>
+										</CardHeader>
+										<CardContent className="p-4 sm:p-6 pt-0">
+											<div className="rounded-lg border border-border overflow-hidden">
+												<Table>
+													<TableHeader>
+														<TableRow>
+															<TableHead>Store</TableHead>
+															<TableHead>Incidents</TableHead>
+															<TableHead className="text-right">Stolen</TableHead>
+															<TableHead className="text-right">Saved</TableHead>
+															<TableHead className="text-right">Lost</TableHead>
+															<TableHead className="text-right">Recovery Rate</TableHead>
+														</TableRow>
+													</TableHeader>
+													<TableBody>
+														{data.storeRecoveryComparisons.slice(0, 12).map((store) => (
+															<TableRow key={`${store.storeId}-${store.storeName}`}>
+																<TableCell className="font-medium">{store.storeName}</TableCell>
+																<TableCell>{store.incidentCount}</TableCell>
+																<TableCell className="text-right">
+																	£{store.totalStolenValue.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+																</TableCell>
+																<TableCell className="text-right text-emerald-700 dark:text-emerald-300">
+																	£{store.totalRecoveredValue.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+																</TableCell>
+																<TableCell className="text-right text-rose-700 dark:text-rose-300">
+																	£{store.totalLostValue.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+																</TableCell>
+																<TableCell className="text-right">
+																	<Badge variant="outline">{store.recoveryRate.toFixed(1)}%</Badge>
+																</TableCell>
+															</TableRow>
+														))}
+													</TableBody>
+												</Table>
+											</div>
+										</CardContent>
+									</Card>
 								</TabsContent>
 
 								<TabsContent value="repeat-offenders" className="mt-3 sm:mt-4 overflow-x-hidden">

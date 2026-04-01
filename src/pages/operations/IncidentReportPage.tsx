@@ -84,6 +84,30 @@ import { Toaster } from '@/components/ui/toaster'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCustomerSelection } from '@/contexts/CustomerSelectionContext'
 
+const getIncidentFinancials = (incident: Incident) => {
+  const stolenItems = Array.isArray(incident?.stolenItems) ? incident.stolenItems : []
+  const totalStolenValue =
+    typeof incident?.totalStolenValue === 'number' && !Number.isNaN(incident.totalStolenValue)
+      ? incident.totalStolenValue
+      : stolenItems.reduce((sum, item) => sum + (typeof item?.totalAmount === 'number' ? item.totalAmount : 0), 0)
+  const totalRecoveredValue =
+    typeof incident?.totalRecoveredValue === 'number' && !Number.isNaN(incident.totalRecoveredValue)
+      ? incident.totalRecoveredValue
+      : typeof incident?.totalValueRecovered === 'number' && !Number.isNaN(incident.totalValueRecovered)
+        ? incident.totalValueRecovered
+        : stolenItems.reduce((sum, item) => sum + (typeof item?.recoveredAmount === 'number' ? item.recoveredAmount : 0), 0)
+  const totalLostValue =
+    typeof incident?.totalLostValue === 'number' && !Number.isNaN(incident.totalLostValue)
+      ? incident.totalLostValue
+      : Math.max(totalStolenValue - totalRecoveredValue, 0)
+
+  return {
+    totalStolenValue,
+    totalRecoveredValue,
+    totalLostValue,
+  }
+}
+
 interface IncidentReportPageProps {
   isCustomerView?: boolean;
   customerId?: string;
@@ -422,7 +446,12 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
     return {
       totalAmountSaved: Array.prototype.reduce.call(
         statsData,
-        (acc: number, incident: Incident) => acc + (incident.totalValueRecovered || 0),
+        (acc: number, incident: Incident) => acc + getIncidentFinancials(incident).totalRecoveredValue,
+        0
+      ),
+      totalAmountLost: Array.prototype.reduce.call(
+        statsData,
+        (acc: number, incident: Incident) => acc + getIncidentFinancials(incident).totalLostValue,
         0
       ),
       uniqueSites: new Set(statsData.map(incident => incident?.siteName).filter(Boolean)).size,
@@ -573,7 +602,11 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
         description: '',
         cost: 0,
         quantity: 1,
-        totalAmount: 0
+        totalAmount: 0,
+        wasRecovered: false,
+        recoveredQuantity: 0,
+        recoveredAmount: 0,
+        lostAmount: 0,
       }
 
       // Update editingIncident if it exists, or initialize a new one
@@ -603,7 +636,11 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
           status: 'pending',
           priority: 'medium',
           stolenItems: [newItem],
-          totalValueRecovered: 0
+          totalValueRecovered: 0,
+          totalRecoveredValue: 0,
+          totalStolenValue: 0,
+          totalLostValue: 0,
+          totalRecoveredQuantity: 0,
         }
         setEditingIncident(newIncident)
         setOpen(true) // Open the form dialog
@@ -707,29 +744,38 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 min-w-0">
-            <Card className="bg-gradient-to-br from-blue-800 to-blue-900 border-blue-700 shadow-md col-span-1 min-w-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 min-w-0">
+            <Card className="bg-gradient-to-br from-emerald-800 to-emerald-900 border-emerald-700 shadow-md col-span-1 min-w-0">
               <CardHeader className="flex flex-row items-center justify-between p-3 md:p-4 pb-1 md:pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-white">Total Amount Saved</CardTitle>
-                <PoundSterling className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-300 flex-shrink-0" />
+                <CardTitle className="text-xs sm:text-sm font-medium text-white">Total Value Saved</CardTitle>
+                <PoundSterling className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-300 flex-shrink-0" />
               </CardHeader>
               <CardContent className="p-3 md:p-4 pt-0 md:pt-1">
                 <div className="text-base sm:text-lg md:text-xl font-bold text-white truncate">£{stats.totalAmountSaved.toFixed(2)}</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-emerald-800 to-emerald-900 border-emerald-700 shadow-md col-span-1 min-w-0">
+            <Card className="bg-gradient-to-br from-rose-800 to-rose-900 border-rose-700 shadow-md col-span-1 min-w-0">
+              <CardHeader className="flex flex-row items-center justify-between p-3 md:p-4 pb-1 md:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-white">Total Value Lost</CardTitle>
+                <PoundSterling className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-300 flex-shrink-0" />
+              </CardHeader>
+              <CardContent className="p-3 md:p-4 pt-0 md:pt-1">
+                <div className="text-base sm:text-lg md:text-xl font-bold text-white truncate">£{stats.totalAmountLost.toFixed(2)}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-purple-800 to-purple-900 border-purple-700 shadow-md col-span-2 md:col-span-1 min-w-0">
               <CardHeader className="flex flex-row items-center justify-between p-3 md:p-4 pb-1 md:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-white">Unique Stores</CardTitle>
-                <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-300 flex-shrink-0" />
+                <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-300 flex-shrink-0" />
               </CardHeader>
               <CardContent className="p-3 md:p-4 pt-0 md:pt-1">
                 <div className="text-base sm:text-lg md:text-xl font-bold text-white">{stats.uniqueSites}</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-purple-800 to-purple-900 border-purple-700 shadow-md col-span-2 md:col-span-1 min-w-0">
+            <Card className="bg-gradient-to-br from-blue-800 to-blue-900 border-blue-700 shadow-md col-span-2 md:col-span-1 min-w-0">
               <CardHeader className="flex flex-row items-center justify-between p-3 md:p-4 pb-1 md:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-white">Total Incidents</CardTitle>
-                <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-300 flex-shrink-0" />
+                <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-300 flex-shrink-0" />
               </CardHeader>
               <CardContent className="p-3 md:p-4 pt-0 md:pt-1">
                 <div className="text-base sm:text-lg md:text-xl font-bold text-white">{stats.totalIncidents}</div>
@@ -906,21 +952,11 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{incident.siteName}</div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="font-semibold text-sm text-green-600">
-                        £{(() => {
-                          const value = incident?.totalValueRecovered
-                          if (typeof value === 'number' && !isNaN(value)) {
-                            return value.toFixed(2)
-                          }
-                          if (Array.isArray(incident?.stolenItems) && incident.stolenItems.length > 0) {
-                            const total = incident.stolenItems.reduce(
-                              (sum, item) => sum + (typeof item?.totalAmount === 'number' ? item.totalAmount : 0),
-                              0
-                            )
-                            return total.toFixed(2)
-                          }
-                          return '0.00'
-                        })()}
+                      <div className="font-semibold text-sm text-emerald-600">
+                        Saved £{getIncidentFinancials(incident).totalRecoveredValue.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-rose-600">
+                        Lost £{getIncidentFinancials(incident).totalLostValue.toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -991,7 +1027,7 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                           <span>Incident Date</span>
                         </div>
                       </TableHead>
-                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap">Total Amount</TableHead>
+                      <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap">Saved / Lost</TableHead>
                       <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 whitespace-nowrap hidden lg:table-cell">Incident Type</TableHead>
                       <TableHead className="font-medium text-sm text-gray-900 dark:text-gray-200 py-3 text-right whitespace-nowrap">Actions</TableHead>
                     </TableRow>
@@ -1013,20 +1049,10 @@ export default function IncidentReportPage({ isCustomerView = false, customerId:
                           {incident.date ? new Date(incident.date).toLocaleDateString() : 'N/A'}
                         </TableCell>
                         <TableCell className="py-3 whitespace-nowrap">
-                          £{(() => {
-                            const value = incident?.totalValueRecovered
-                            if (typeof value === 'number' && !isNaN(value)) {
-                              return value.toFixed(2)
-                            }
-                            if (Array.isArray(incident?.stolenItems) && incident.stolenItems.length > 0) {
-                              const total = incident.stolenItems.reduce(
-                                (sum, item) => sum + (typeof item?.totalAmount === 'number' ? item.totalAmount : 0),
-                                0
-                              )
-                              return total.toFixed(2)
-                            }
-                            return '0.00'
-                          })()}
+                          <div className="flex flex-col">
+                            <span className="text-emerald-600">Saved £{getIncidentFinancials(incident).totalRecoveredValue.toFixed(2)}</span>
+                            <span className="text-rose-600 text-xs">Lost £{getIncidentFinancials(incident).totalLostValue.toFixed(2)}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="py-3 hidden lg:table-cell whitespace-nowrap">{incident.incidentType}</TableCell>
                         <TableCell className="py-3">
